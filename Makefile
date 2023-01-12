@@ -9,6 +9,7 @@ update:; forge update
 build  :; forge build --sizes --via-ir
 test   :; forge test -vvv
 test-v3-listing-engine:; forge test -vvv --match-contract GenericV3ListingEngineTest --gas-report
+generate-permissions-reports :;  forge script scripts/GeneratePermissionTable.s.sol:GeneratePermissions -vvv
 
 # Utilities
 download :; cast etherscan-source --chain ${chain} -d src/etherscan/${chain}_${address} ${address}
