@@ -9,7 +9,6 @@ import {IOwnable} from 'solidity-utils/contracts/transparent-proxy/interfaces/IO
 
 import {IACLManager, IPoolAddressesProvider} from 'aave-address-book/AaveV3.sol';
 
-
 // TODO some addresses don't belong here, should be on address-book
 library PermissionsData {
   address internal constant ADDRESSES_PROVIDER_REGISTRY_ARBITRUM =
@@ -261,20 +260,27 @@ abstract contract BaseAavePermissionsHelper is Script {
 
 contract GeneratePermissions is BaseAavePermissionsHelper {
   function run() external {
-    vm.createSelectFork(vm.rpcUrl('arbitrum'), 52539000);
+    string memory PATH_ARB_REPORT = './reports/Arbitrum_permissions.md';
+    string memory PATH_OP_REPORT = './reports/Optimism_permissions.md';
+    uint256 FORK_BLOCK_ARB = 52539000;
+    uint256 FORK_BLOCK_OP = 64979200;
 
+    vm.createSelectFork(vm.rpcUrl('arbitrum'), FORK_BLOCK_ARB);
+
+    vm.writeFile(PATH_ARB_REPORT, '');
     _writePermissionsTable(
       PermissionsData.ARB_ID,
-      './reports/Arbitrum_permissions.md',
+      PATH_ARB_REPORT,
       PermissionsData._getPermissionsSourcesArb(),
       PermissionsData._pickAddressesKnownAccounts(PermissionsData._getKnownAccountsArb())
     );
 
-    vm.createSelectFork(vm.rpcUrl('optimism'), 64979200);
+    vm.createSelectFork(vm.rpcUrl('optimism'), FORK_BLOCK_OP);
 
+    vm.writeFile(PATH_OP_REPORT, '');
     _writePermissionsTable(
       PermissionsData.OP_ID,
-      './reports/Optimism_permissions.md',
+      PATH_OP_REPORT,
       PermissionsData._getPermissionsSourcesOp(),
       PermissionsData._pickAddressesKnownAccounts(PermissionsData._getKnownAccountsOp())
     );
