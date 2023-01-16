@@ -96,5 +96,12 @@ interface IGenericV3ListingEngine {
     uint256 borrowCap; // Always configured, no matter if enabled for borrowing or not. Same format as supply cap
   }
 
+  struct CapsUpdate {
+    address asset;
+    string assetSymbol;
+    uint256 supplyCap;
+    uint256 borrowCap;
+  }
+
   function listAssets(PoolContext memory context, Listing[] memory listings) external;
 }

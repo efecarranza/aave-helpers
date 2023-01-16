@@ -136,6 +136,14 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     POOL_CONFIGURATOR.initReserves(initReserveInputs);
   }
 
+  function updateCaps(CapsUpdate[] memory capsUpdates) public {
+    require(capsUpdates.length != 0, 'AT_LEAST_ONE_ASSET_REQUIRED');
+
+    AssetsConfig memory configs = _repackCapsUpdate(capsUpdates);
+
+    configureCaps(configs.ids, configs.caps);
+  }
+
   function configureCaps(address[] memory ids, Caps[] memory caps) public {
     for (uint256 i = 0; i < ids.length; i++) {
       if (caps[i].supplyCap != 0) {
@@ -206,6 +214,29 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
         POOL_CONFIGURATOR.setAssetEModeCategory(ids[i], collaterals[i].eModeCategory);
       }
     }
+  }
+
+  function _repackCapsUpdate(CapsUpdate[] memory capsUpdates)
+    internal
+    pure
+    returns (AssetsConfig memory)
+  {
+    address[] memory ids = new address[](capsUpdates.length);
+    Caps[] memory caps = new Caps[](capsUpdates.length);
+
+    for (uint256 i = 0; i < capsUpdates.length; i++) {
+      ids[i] = capsUpdates[i].asset;
+      caps[i] = Caps({supplyCap: capsUpdates[i].supplyCap, borrowCap: capsUpdates[i].borrowCap});
+    }
+
+    return
+      AssetsConfig({
+        ids: ids,
+        caps: caps,
+        basics: new Basic[](0),
+        borrows: new Borrow[](0),
+        collaterals: new Collateral[](0)
+      });
   }
 
   function _repackListing(Listing[] memory listings) internal pure returns (AssetsConfig memory) {
