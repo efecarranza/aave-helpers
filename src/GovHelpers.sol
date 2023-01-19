@@ -92,21 +92,21 @@ contract MockExecutor {
 /**
  * @dev Inheriting from this contract in a forge test allows to
  * 1. Configure on the setUp() of the child contract an executor for governance proposals
- *    (or any address with permissions) just by doing for example a `_setUp(AaveGovernanceV2.SHORT_EXECUTOR)`
- * 2. Afterwards, on a test you can just do `_execute(somePayloadAddress)`, and it will be executed via
+ *    (or any address with permissions) just by doing for example a `_selectPayloadExecutor(AaveGovernanceV2.SHORT_EXECUTOR)`
+ * 2. Afterwards, on a test you can just do `_executePayload(somePayloadAddress)`, and it will be executed via
  *    DELEGATECALL on the address previously selected on step 1).
  */
 abstract contract TestWithExecutor is Test {
   MockExecutor internal _executor;
 
-  function _setUp(address executor) internal {
+  function _selectPayloadExecutor(address executor) internal {
     MockExecutor mockExecutor = new MockExecutor();
     vm.etch(executor, address(mockExecutor).code);
 
     _executor = MockExecutor(executor);
   }
 
-  function _execute(address payload) internal {
+  function _executePayload(address payload) internal {
     _executor.execute(payload);
   }
 }
