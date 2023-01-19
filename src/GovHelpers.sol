@@ -80,7 +80,7 @@ library GovHelpers {
 
 /**
  * @dev Mock contract which allows performing a delegatecall to `execute`
- * Intended to me used as replacement for L2 admins to mock governance/gnosis execution.
+ * Intended to be used as replacement for L2 admins to mock governance/gnosis execution.
  */
 contract MockExecutor {
   function execute(address payload) public {
