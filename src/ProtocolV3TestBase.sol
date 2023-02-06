@@ -93,8 +93,11 @@ contract ProtocolV3TestBase is CommonTestBase {
     returns (ReserveConfig memory config)
   {
     for (uint256 i = 0; i < configs.length; i++) {
-      if (configs[i].usageAsCollateralEnabled && !configs[i].stableBorrowRateEnabled)
-        return configs[i];
+      if (
+        !configs[i].isFrozen &&
+        configs[i].usageAsCollateralEnabled &&
+        !configs[i].stableBorrowRateEnabled
+      ) return configs[i];
     }
     revert('ERROR: No collateral found');
   }
