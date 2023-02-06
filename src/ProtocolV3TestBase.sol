@@ -109,7 +109,7 @@ contract ProtocolV3TestBase is CommonTestBase {
   ) internal {
     // test all basic interactions
     for (uint256 i = 0; i < configs.length; i++) {
-      uint256 amount = 100 * 10**configs[i].decimals;
+      uint256 amount = 1 * 10**configs[i].decimals;
       if (!configs[i].isFrozen) {
         _deposit(configs[i], pool, user, amount);
         _skipBlocks(1000);
@@ -133,9 +133,9 @@ contract ProtocolV3TestBase is CommonTestBase {
   ) internal {
     // put 1M whatever collateral, which should be enough to borrow 1 of each
     ReserveConfig memory collateralConfig = _getFirstCollateral(configs);
-    _deposit(collateralConfig, pool, user, 1000000 ether);
+    _deposit(collateralConfig, pool, user, 100 ether);
     for (uint256 i = 0; i < configs.length; i++) {
-      uint256 amount = 10**configs[i].decimals;
+      uint256 amount = 10**configs[i].decimals / 10**(configs[i].decimals - 4);
       if (configs[i].borrowingEnabled) {
         _deposit(configs[i], pool, EOA, amount * 2);
         this._borrow(configs[i], pool, user, amount, false);
@@ -155,9 +155,9 @@ contract ProtocolV3TestBase is CommonTestBase {
   ) internal {
     // put 1M whatever collateral, which should be enough to borrow 1 of each
     ReserveConfig memory collateralConfig = _getFirstCollateral(configs);
-    _deposit(collateralConfig, pool, user, 1000000 ether);
+    _deposit(collateralConfig, pool, user, 100 ether);
     for (uint256 i = 0; i < configs.length; i++) {
-      uint256 amount = 10**configs[i].decimals;
+      uint256 amount = 10**configs[i].decimals / 10**(configs[i].decimals - 4);
       if (configs[i].borrowingEnabled && configs[i].stableBorrowRateEnabled) {
         _deposit(configs[i], pool, EOA, amount * 2);
         this._borrow(configs[i], pool, user, amount, true);
