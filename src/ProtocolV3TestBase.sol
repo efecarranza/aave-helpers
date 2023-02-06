@@ -135,12 +135,14 @@ contract ProtocolV3TestBase is CommonTestBase {
     ReserveConfig memory collateralConfig = _getFirstCollateral(configs);
     _deposit(collateralConfig, pool, user, 100 ether);
     for (uint256 i = 0; i < configs.length; i++) {
-      uint256 amount = 10**configs[i].decimals / 10**(configs[i].decimals - 4);
-      if (configs[i].borrowingEnabled) {
-        _deposit(configs[i], pool, EOA, amount * 2);
-        this._borrow(configs[i], pool, user, amount, false);
-      } else {
-        console.log('SKIP: BORROWING_DISABLED %s', configs[i].symbol);
+      if (!configs[i].isFrozen) {
+        uint256 amount = 10**configs[i].decimals / 10**(configs[i].decimals - 4);
+        if (configs[i].borrowingEnabled) {
+          _deposit(configs[i], pool, EOA, amount * 2);
+          this._borrow(configs[i], pool, user, amount, false);
+        } else {
+          console.log('SKIP: BORROWING_DISABLED %s', configs[i].symbol);
+        }
       }
     }
   }
@@ -157,12 +159,14 @@ contract ProtocolV3TestBase is CommonTestBase {
     ReserveConfig memory collateralConfig = _getFirstCollateral(configs);
     _deposit(collateralConfig, pool, user, 100 ether);
     for (uint256 i = 0; i < configs.length; i++) {
-      uint256 amount = 10**configs[i].decimals / 10**(configs[i].decimals - 4);
-      if (configs[i].borrowingEnabled && configs[i].stableBorrowRateEnabled) {
-        _deposit(configs[i], pool, EOA, amount * 2);
-        this._borrow(configs[i], pool, user, amount, true);
-      } else {
-        console.log('SKIP: STABLE_BORROWING_DISABLED %s', configs[i].symbol);
+      if (!configs[i].isFrozen) {
+        uint256 amount = 10**configs[i].decimals / 10**(configs[i].decimals - 4);
+        if (configs[i].borrowingEnabled && configs[i].stableBorrowRateEnabled) {
+          _deposit(configs[i], pool, EOA, amount * 2);
+          this._borrow(configs[i], pool, user, amount, true);
+        } else {
+          console.log('SKIP: STABLE_BORROWING_DISABLED %s', configs[i].symbol);
+        }
       }
     }
   }
