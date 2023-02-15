@@ -13,10 +13,10 @@ contract ProtocolV3TestBaseTest is ProtocolV3TestBase {
   function testSnpashot() public {
     this.createConfigurationSnapshot('pre-x', AaveV3Polygon.POOL);
     // do sth
-    // this.createConfigurationSnapshot('post-x', AaveV3Polygon.POOL);
+    this.createConfigurationSnapshot('post-x', AaveV3Polygon.POOL);
 
     // requires --ffi
-    // diffReports('pre-x', 'post-x');
+    diffReports('pre-x', 'post-x', true);
   }
 
   // commented out as it is insanely slow with public rpcs

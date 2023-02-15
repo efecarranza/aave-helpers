@@ -18,6 +18,17 @@ contract CommonTestBase is Test {
    * @dev generates the diff between two reports
    */
   function diffReports(string memory reportBefore, string memory reportAfter) internal {
+    diffReports(reportBefore, reportAfter, false);
+  }
+
+  /**
+   * @dev overloaded `diffReports` allowing to prune original reports & only keep diff
+   */
+  function diffReports(
+    string memory reportBefore,
+    string memory reportAfter,
+    bool pruneReports
+  ) internal {
     string memory outPath = string(
       abi.encodePacked('./diffs/', reportBefore, '_', reportAfter, '.md')
     );
@@ -41,6 +52,16 @@ contract CommonTestBase is Test {
       )
     );
     vm.ffi(inputs);
+
+    if (pruneReports) {
+      string[] memory rmInputs = new string[](2);
+      rmInputs[0] = 'rm';
+      rmInputs[1] = beforePath;
+      vm.ffi(rmInputs);
+
+      rmInputs[1] = afterPath;
+      vm.ffi(rmInputs);
+    }
   }
 
   /**
