@@ -2,6 +2,89 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/bgd-labs/aave-helpers/compare/v2.0.0...v2.1.0) (2023-02-14)
+
+
+### Features
+
+* add listing engines to helpers ([#52](https://github.com/bgd-labs/aave-helpers/issues/52)) ([b063743](https://github.com/bgd-labs/aave-helpers/commit/b063743a0b206a0e2cf073740ea2d94e4cc4cb6e))
+* report diffing `diffReports` ([#48](https://github.com/bgd-labs/aave-helpers/issues/48)) ([ca99238](https://github.com/bgd-labs/aave-helpers/commit/ca992385b8542254494463ca005603b42f9f1119))
+
+
+### Bug Fixes
+
+* enforce non zero targets on executor ([#47](https://github.com/bgd-labs/aave-helpers/issues/47)) ([23fb586](https://github.com/bgd-labs/aave-helpers/commit/23fb58612dc7b08829a137983577c85b919581a7))
+
+## [2.0.0](https://github.com/bgd-labs/aave-helpers/compare/v1.6.0...v2.0.0) (2023-02-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* - gov helpers no longer re-exports addresses, fetch them from address-book instead (https://github.com/bgd-labs/aave-address-book/blob/main/src/AaveGovernanceV2.sol)
+- `createProposal` was renamed to `createTestProposal`
+- the new `createProposal` is intended to be used for actual proposal creation and enforces delegatecall style proposals
+
+### Features
+
+* add implementation snapshots to v3 configurationSnapshots ([#43](https://github.com/bgd-labs/aave-helpers/issues/43)) ([e10aa98](https://github.com/bgd-labs/aave-helpers/commit/e10aa98d42b5cafa862671fee189e0d54a2fddfa))
+
+
+* !feat: proposal creation helpers (#42) ([13a9871](https://github.com/bgd-labs/aave-helpers/commit/13a987167450a65fe27d9df940628c26b6780b33)), closes [#42](https://github.com/bgd-labs/aave-helpers/issues/42)
+
+## [1.6.0](https://github.com/bgd-labs/aave-helpers/compare/v1.5.0...v1.6.0) (2023-01-31)
+
+
+### Features
+
+* v2 test base ([#40](https://github.com/bgd-labs/aave-helpers/issues/40)) ([2643d4f](https://github.com/bgd-labs/aave-helpers/commit/2643d4f07cc9fd669d780851705fb4d243a60a9d))
+
+
+### Bug Fixes
+
+* downgrade scripts ([#38](https://github.com/bgd-labs/aave-helpers/issues/38)) ([8d5c922](https://github.com/bgd-labs/aave-helpers/commit/8d5c922296a82991d93676475cf3d9c9952ed7e1)), closes [#37](https://github.com/bgd-labs/aave-helpers/issues/37)
+* use correct minimum version ([#37](https://github.com/bgd-labs/aave-helpers/issues/37)) ([1d1d286](https://github.com/bgd-labs/aave-helpers/commit/1d1d2864f1abda6582c315dff1bce3062cc38a14))
+
+## [1.5.0](https://github.com/bgd-labs/aave-helpers/compare/v1.4.0...v1.5.0) (2023-01-26)
+
+
+### Features
+
+* add generic executor ([#34](https://github.com/bgd-labs/aave-helpers/issues/34)) ([8f5f9d3](https://github.com/bgd-labs/aave-helpers/commit/8f5f9d3e3b9bbf09cf90625d0f568f0025724f68))
+
+## [1.4.0](https://github.com/bgd-labs/aave-helpers/compare/v1.2.3...v1.4.0) (2023-01-19)
+
+
+### Features
+
+* add 3_0_1 snapshot ([#32](https://github.com/bgd-labs/aave-helpers/issues/32)) ([3a17bb9](https://github.com/bgd-labs/aave-helpers/commit/3a17bb9ec62f30ce14126e6585d8a66c27ded5e0))
+* added TestWithExecutor contract to GovHelpers ([5449659](https://github.com/bgd-labs/aave-helpers/commit/5449659a6599af29d367e3753acfb056747f53a3))
+
+
+### Bug Fixes
+
+* add _clone() of ReserveConfig for _findReserveConfigBySymbol() and _findReserveConfig() ([#27](https://github.com/bgd-labs/aave-helpers/issues/27)) ([043e0cc](https://github.com/bgd-labs/aave-helpers/commit/043e0cc275882f44410bedd56f0d173c254e403c))
+
+## [1.3.0](https://github.com/bgd-labs/aave-helpers/compare/v1.2.3...v1.3.0) (2023-01-19)
+
+
+### Features
+
+* added TestWithExecutor contract to GovHelpers ([5449659](https://github.com/bgd-labs/aave-helpers/commit/5449659a6599af29d367e3753acfb056747f53a3))
+
+
+### Bug Fixes
+
+* add _clone() of ReserveConfig for _findReserveConfigBySymbol() and _findReserveConfig() ([#27](https://github.com/bgd-labs/aave-helpers/issues/27)) ([043e0cc](https://github.com/bgd-labs/aave-helpers/commit/043e0cc275882f44410bedd56f0d173c254e403c))
+
+### [1.2.5](https://github.com/bgd-labs/aave-helpers/compare/v1.2.3...v1.2.5) (2023-01-18)
+
+
+### Bug Fixes
+
+* add _clone() of ReserveConfig for _findReserveConfigBySymbol() and _findReserveConfig() ([#27](https://github.com/bgd-labs/aave-helpers/issues/27)) ([043e0cc](https://github.com/bgd-labs/aave-helpers/commit/043e0cc275882f44410bedd56f0d173c254e403c))
+
+### [1.2.4](https://github.com/bgd-labs/aave-helpers/compare/v1.2.3...v1.2.4) (2023-01-17)
+
 ### [1.2.3](https://github.com/bgd-labs/aave-helpers/compare/v1.2.2...v1.2.3) (2022-12-22)
 
 ### [1.2.2](https://github.com/bgd-labs/aave-helpers/compare/v1.2.1...v1.2.2) (2022-12-22)

@@ -103,5 +103,12 @@ interface IGenericV3ListingEngine {
     uint256 borrowCap;
   }
 
+  /**
+   * @notice Performs a full listing of an asset in the Aave pool configured in this engine instance
+   * @param context `PoolContext` struct, effectively meta-data for naming of a/v/s tokens.
+   *   More information on the documentation of the struct.
+   * @param listings `Listing[]` list of declarative configs for every aspect of the asset listing.
+   *   More information on the documentation of the struct.
+   */
   function listAssets(PoolContext memory context, Listing[] memory listings) external;
 }

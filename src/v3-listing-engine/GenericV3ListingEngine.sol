@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 
 import {IPoolConfigurator, IAaveOracle, ConfiguratorInputTypes} from 'aave-address-book/AaveV3.sol';
-import {IERC20} from '../interfaces/IERC20.sol';
+import {IERC20Metadata} from 'solidity-utils/contracts/oz-common/interfaces/IERC20Metadata.sol';
 import {IChainlinkAggregator} from '../interfaces/IChainlinkAggregator.sol';
 import {IGenericV3ListingEngine} from './IGenericV3ListingEngine.sol';
 
@@ -51,23 +51,24 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     COLLECTOR = collector;
   }
 
+  /// @inheritdoc IGenericV3ListingEngine
   function listAssets(PoolContext memory context, Listing[] memory listings) public {
     require(listings.length != 0, 'AT_LEAST_ONE_ASSET_REQUIRED');
 
     AssetsConfig memory configs = _repackListing(listings);
 
-    setPriceFeeds(configs.ids, configs.basics);
+    _setPriceFeeds(configs.ids, configs.basics);
 
-    initAssets(context, configs.ids, configs.basics);
+    _initAssets(context, configs.ids, configs.basics);
 
-    configureCaps(configs.ids, configs.caps);
+    _configureCaps(configs.ids, configs.caps);
 
-    configBorrowSide(configs.ids, configs.borrows);
+    _configBorrowSide(configs.ids, configs.borrows);
 
-    configCollateralSide(configs.ids, configs.collaterals);
+    _configCollateralSide(configs.ids, configs.collaterals);
   }
 
-  function setPriceFeeds(address[] memory ids, Basic[] memory basics) public {
+  function _setPriceFeeds(address[] memory ids, Basic[] memory basics) internal {
     address[] memory assets = new address[](ids.length);
     address[] memory sources = new address[](ids.length);
 
@@ -85,15 +86,15 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
   }
 
   /// @dev mandatory configurations for any asset getting listed, including oracle config and basic init
-  function initAssets(
+  function _initAssets(
     PoolContext memory context,
     address[] memory ids,
     Basic[] memory basics
-  ) public {
+  ) internal {
     ConfiguratorInputTypes.InitReserveInput[]
       memory initReserveInputs = new ConfiguratorInputTypes.InitReserveInput[](ids.length);
     for (uint256 i = 0; i < ids.length; i++) {
-      uint8 decimals = IERC20(ids[i]).decimals();
+      uint8 decimals = IERC20Metadata(ids[i]).decimals();
       require(decimals > 0, 'INVALID_ASSET_DECIMALS');
       require(basics[i].rateStrategy != address(0), 'ONLY_NONZERO_RATE_STRATEGY');
 
@@ -156,7 +157,7 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     }
   }
 
-  function configBorrowSide(address[] memory ids, Borrow[] memory borrows) public {
+  function _configBorrowSide(address[] memory ids, Borrow[] memory borrows) internal {
     for (uint256 i = 0; i < ids.length; i++) {
       if (borrows[i].enabledToBorrow) {
         POOL_CONFIGURATOR.setReserveBorrowing(ids[i], true);
@@ -187,7 +188,7 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     }
   }
 
-  function configCollateralSide(address[] memory ids, Collateral[] memory collaterals) public {
+  function _configCollateralSide(address[] memory ids, Collateral[] memory collaterals) internal {
     for (uint256 i = 0; i < ids.length; i++) {
       if (collaterals[i].liqThreshold != 0) {
         require(
@@ -200,7 +201,9 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
           ids[i],
           collaterals[i].ltv,
           collaterals[i].liqThreshold,
-          100_00 + collaterals[i].liqBonus // Opinionated, seems more correct to define liqBonus as 5_00 for 5%
+          // For reference, this is to simplify the interaction with the Aave protocol,
+          // as there the definition is as e.g. 105% (5% bonus for liquidators)
+          100_00 + collaterals[i].liqBonus
         );
 
         POOL_CONFIGURATOR.setLiquidationProtocolFee(ids[i], collaterals[i].liqProtocolFee);
@@ -247,6 +250,7 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     Caps[] memory caps = new Caps[](listings.length);
 
     for (uint256 i = 0; i < listings.length; i++) {
+      require(listings[i].asset != address(0), 'INVALID_ASSET');
       ids[i] = listings[i].asset;
       basics[i] = Basic({
         assetSymbol: listings[i].assetSymbol,
