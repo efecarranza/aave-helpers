@@ -5,27 +5,19 @@ import 'forge-std/Test.sol';
 
 import {AaveV3Polygon} from 'aave-address-book/AaveV3Polygon.sol';
 import {ProtocolV3TestBase, ReserveTokens, ReserveConfig} from '../ProtocolV3TestBase.sol';
-import {GenericV3ListingEngine} from '../v3-listing-engine/GenericV3ListingEngine.sol';
+import {AaveV3ConfigEngine} from '../v3-config-engine/AaveV3ConfigEngine.sol';
 import {AaveV3PolygonMockListing} from './mocks/AaveV3PolygonMockListing.sol';
 
-contract GenericV3ListingEngineTest is ProtocolV3TestBase {
+contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   using stdStorage for StdStorage;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('polygon'), 36329200);
+    vm.createSelectFork(vm.rpcUrl('polygon'), 39279435);
   }
 
   function testEngine() public {
-    GenericV3ListingEngine listingEngine = new GenericV3ListingEngine(
-      AaveV3Polygon.POOL_CONFIGURATOR,
-      AaveV3Polygon.ORACLE,
-      AaveV3Polygon.DEFAULT_A_TOKEN_IMPL_REV_1,
-      AaveV3Polygon.DEFAULT_VARIABLE_DEBT_TOKEN_IMPL_REV_1,
-      AaveV3Polygon.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_1,
-      AaveV3Polygon.DEFAULT_INCENTIVES_CONTROLLER,
-      AaveV3Polygon.COLLECTOR
-    );
-    AaveV3PolygonMockListing payload = new AaveV3PolygonMockListing(listingEngine);
+    AaveV3ConfigEngine engine = AaveV3ConfigEngine(AaveV3Polygon.LISTING_ENGINE);
+    AaveV3PolygonMockListing payload = new AaveV3PolygonMockListing();
 
     vm.startPrank(AaveV3Polygon.ACL_ADMIN);
     AaveV3Polygon.ACL_MANAGER.addPoolAdmin(address(payload));
@@ -73,9 +65,9 @@ contract GenericV3ListingEngineTest is ProtocolV3TestBase {
       AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
       _findReserveConfigBySymbol(allConfigsAfter, '1INCH'),
       ReserveTokens({
-        aToken: listingEngine.ATOKEN_IMPL(),
-        stableDebtToken: listingEngine.STOKEN_IMPL(),
-        variableDebtToken: listingEngine.VTOKEN_IMPL()
+        aToken: engine.ATOKEN_IMPL(),
+        stableDebtToken: engine.STOKEN_IMPL(),
+        variableDebtToken: engine.VTOKEN_IMPL()
       })
     );
 
@@ -90,9 +82,9 @@ contract GenericV3ListingEngineTest is ProtocolV3TestBase {
       AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
       _findReserveConfigBySymbol(allConfigsAfter, 'WBTC'),
       ReserveTokens({
-        aToken: listingEngine.ATOKEN_IMPL(),
-        stableDebtToken: listingEngine.STOKEN_IMPL(),
-        variableDebtToken: listingEngine.VTOKEN_IMPL()
+        aToken: engine.ATOKEN_IMPL(),
+        stableDebtToken: engine.STOKEN_IMPL(),
+        variableDebtToken: engine.VTOKEN_IMPL()
       })
     );
   }

@@ -4,11 +4,13 @@ pragma solidity ^0.8.12;
 import {IPoolConfigurator, IAaveOracle, ConfiguratorInputTypes} from 'aave-address-book/AaveV3.sol';
 import {IERC20Metadata} from 'solidity-utils/contracts/oz-common/interfaces/IERC20Metadata.sol';
 import {IChainlinkAggregator} from '../interfaces/IChainlinkAggregator.sol';
-import {IGenericV3ListingEngine} from './IGenericV3ListingEngine.sol';
+import {IAaveV3ConfigEngine} from './IAaveV3ConfigEngine.sol';
+import {EngineFlags} from './EngineFlags.sol';
 
 /**
- * @dev Helper smart contract implementing a generalized Aave v3 listing flow for a set of assets
- * It is planned to be used via delegatecall, by any contract having appropriate permissions to
+ * @dev Helper smart contract abstracting the complexity of changing configurations on Aave v3, simplifying 
+ * listing flow and parameters updates.
+ * - It is planned to be used via delegatecall, by any contract having appropriate permissions to
  * do a listing, or any other granular config
  * Assumptions:
  * - Only one a/v/s token implementation for all assets
@@ -16,7 +18,44 @@ import {IGenericV3ListingEngine} from './IGenericV3ListingEngine.sol';
  * - Only one Collector for all assets
  * @author BGD Labs
  */
-contract GenericV3ListingEngine is IGenericV3ListingEngine {
+contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
+  struct AssetsConfig {
+    address[] ids;
+    Basic[] basics;
+    Borrow[] borrows;
+    Collateral[] collaterals;
+    Caps[] caps;
+  }
+
+  struct Basic {
+    string assetSymbol;
+    address priceFeed;
+    address rateStrategy; // Mandatory, no matter if enabled for borrowing or not
+  }
+
+  struct Borrow {
+    bool enabledToBorrow; // Main config flag, if false, some of the other fields will not be considered
+    bool flashloanable;
+    bool stableRateModeEnabled;
+    bool borrowableInIsolation;
+    bool withSiloedBorrowing;
+    uint256 reserveFactor; // With 2 digits precision, `10_00` for 10%. Should be positive and < 100_00
+  }
+
+  struct Collateral {
+    uint256 ltv; // Only considered if liqThreshold > 0. With 2 digits precision, `10_00` for 10%. Should be lower than liquidationThreshold
+    uint256 liqThreshold; // If `0`, the asset will not be enabled as collateral. Same format as ltv, and should be higher
+    uint256 liqBonus; // Only considered if liqThreshold > 0. Same format as ltv
+    uint256 debtCeiling; // Only considered if liqThreshold > 0. In USD and with 2 digits for decimals, e.g. 10_000_00 for 10k
+    uint256 liqProtocolFee; // Only considered if liqThreshold > 0. Same format as ltv
+    uint8 eModeCategory;
+  }
+
+  struct Caps {
+    uint256 supplyCap; // Always configured. In "big units" of the asset, and no decimals. 100 for 100 ETH supply cap
+    uint256 borrowCap; // Always configured, no matter if enabled for borrowing or not. Same format as supply cap
+  }
+
   IPoolConfigurator public immutable POOL_CONFIGURATOR;
   IAaveOracle public immutable ORACLE;
   address public immutable ATOKEN_IMPL;
@@ -51,7 +90,7 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     COLLECTOR = collector;
   }
 
-  /// @inheritdoc IGenericV3ListingEngine
+  /// @inheritdoc IAaveV3ConfigEngine
   function listAssets(PoolContext memory context, Listing[] memory listings) public {
     require(listings.length != 0, 'AT_LEAST_ONE_ASSET_REQUIRED');
 
@@ -66,6 +105,15 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     _configBorrowSide(configs.ids, configs.borrows);
 
     _configCollateralSide(configs.ids, configs.collaterals);
+  }
+
+  /// @inheritdoc IAaveV3ConfigEngine
+  function updateCaps(CapsUpdate[] memory updates) public {
+    require(updates.length != 0, 'AT_LEAST_ONE_ASSET_REQUIRED');
+
+    AssetsConfig memory configs = _repackCapsUpdate(updates);
+
+    _configureCaps(configs.ids, configs.caps);
   }
 
   function _setPriceFeeds(address[] memory ids, Basic[] memory basics) internal {
@@ -137,21 +185,13 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     POOL_CONFIGURATOR.initReserves(initReserveInputs);
   }
 
-  function updateCaps(CapsUpdate[] memory capsUpdates) public {
-    require(capsUpdates.length != 0, 'AT_LEAST_ONE_ASSET_REQUIRED');
-
-    AssetsConfig memory configs = _repackCapsUpdate(capsUpdates);
-
-    configureCaps(configs.ids, configs.caps);
-  }
-
-  function configureCaps(address[] memory ids, Caps[] memory caps) public {
+  function _configureCaps(address[] memory ids, Caps[] memory caps) internal {
     for (uint256 i = 0; i < ids.length; i++) {
-      if (caps[i].supplyCap != 0) {
+      if (caps[i].supplyCap != EngineFlags.KEEP_CURRENT) {
         POOL_CONFIGURATOR.setSupplyCap(ids[i], caps[i].supplyCap);
       }
 
-      if (caps[i].borrowCap != 0) {
+      if (caps[i].borrowCap != EngineFlags.KEEP_CURRENT) {
         POOL_CONFIGURATOR.setBorrowCap(ids[i], caps[i].borrowCap);
       }
     }
@@ -219,29 +259,6 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
     }
   }
 
-  function _repackCapsUpdate(CapsUpdate[] memory capsUpdates)
-    internal
-    pure
-    returns (AssetsConfig memory)
-  {
-    address[] memory ids = new address[](capsUpdates.length);
-    Caps[] memory caps = new Caps[](capsUpdates.length);
-
-    for (uint256 i = 0; i < capsUpdates.length; i++) {
-      ids[i] = capsUpdates[i].asset;
-      caps[i] = Caps({supplyCap: capsUpdates[i].supplyCap, borrowCap: capsUpdates[i].borrowCap});
-    }
-
-    return
-      AssetsConfig({
-        ids: ids,
-        caps: caps,
-        basics: new Basic[](0),
-        borrows: new Borrow[](0),
-        collaterals: new Collateral[](0)
-      });
-  }
-
   function _repackListing(Listing[] memory listings) internal pure returns (AssetsConfig memory) {
     address[] memory ids = new address[](listings.length);
     Basic[] memory basics = new Basic[](listings.length);
@@ -283,6 +300,29 @@ contract GenericV3ListingEngine is IGenericV3ListingEngine {
         borrows: borrows,
         collaterals: collaterals,
         caps: caps
+      });
+  }
+
+  function _repackCapsUpdate(CapsUpdate[] memory updates)
+    internal
+    pure
+    returns (AssetsConfig memory)
+  {
+    address[] memory ids = new address[](updates.length);
+    Caps[] memory caps = new Caps[](updates.length);
+
+    for (uint256 i = 0; i < updates.length; i++) {
+      ids[i] = updates[i].asset;
+      caps[i] = Caps({supplyCap: updates[i].supplyCap, borrowCap: updates[i].borrowCap});
+    }
+
+    return
+      AssetsConfig({
+        ids: ids,
+        caps: caps,
+        basics: new Basic[](0),
+        borrows: new Borrow[](0),
+        collaterals: new Collateral[](0)
       });
   }
 }

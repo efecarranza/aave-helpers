@@ -5,7 +5,7 @@ import {AaveV3Optimism} from 'aave-address-book/AaveV3Optimism.sol';
 import {AaveV3Arbitrum} from 'aave-address-book/AaveV3Arbitrum.sol';
 import {AaveV3Polygon} from 'aave-address-book/AaveV3Polygon.sol';
 import {AaveV3Avalanche} from 'aave-address-book/AaveV3Avalanche.sol';
-import {GenericV3ListingEngine} from '../src/v3-listing-engine/GenericV3ListingEngine.sol';
+import {AaveV3ConfigEngine} from '../src/v3-config-engine/AaveV3ConfigEngine.sol';
 
 /**
  * Helper contract to enforce correct chain selection in scripts
@@ -32,10 +32,10 @@ abstract contract AvalancheScript is WithChainIdValidation {
   constructor() WithChainIdValidation(43114) {}
 }
 
-contract DeployListingEngineOpt is OptimismScript {
+contract DeployEngineOpt is OptimismScript {
   function run() external {
     vm.startBroadcast();
-    new GenericV3ListingEngine(
+    new AaveV3ConfigEngine(
       AaveV3Optimism.POOL_CONFIGURATOR,
       AaveV3Optimism.ORACLE,
       AaveV3Optimism.DEFAULT_A_TOKEN_IMPL_REV_1,
@@ -48,10 +48,10 @@ contract DeployListingEngineOpt is OptimismScript {
   }
 }
 
-contract DeployListingEngineArb is ArbitrumScript {
+contract DeployEngineArb is ArbitrumScript {
   function run() external {
     vm.startBroadcast();
-    new GenericV3ListingEngine(
+    new AaveV3ConfigEngine(
       AaveV3Arbitrum.POOL_CONFIGURATOR,
       AaveV3Arbitrum.ORACLE,
       AaveV3Arbitrum.DEFAULT_A_TOKEN_IMPL_REV_1,
@@ -64,10 +64,10 @@ contract DeployListingEngineArb is ArbitrumScript {
   }
 }
 
-contract DeployListingEnginePol is PolygonScript {
+contract DeployEnginePol is PolygonScript {
   function run() external {
     vm.startBroadcast();
-    new GenericV3ListingEngine(
+    new AaveV3ConfigEngine(
       AaveV3Polygon.POOL_CONFIGURATOR,
       AaveV3Polygon.ORACLE,
       AaveV3Polygon.DEFAULT_A_TOKEN_IMPL_REV_1,
@@ -80,10 +80,10 @@ contract DeployListingEnginePol is PolygonScript {
   }
 }
 
-contract DeployListingEngineAva is AvalancheScript {
+contract DeployEngineAva is AvalancheScript {
   function run() external {
     vm.startBroadcast();
-    new GenericV3ListingEngine(
+    new AaveV3ConfigEngine(
       AaveV3Avalanche.POOL_CONFIGURATOR,
       AaveV3Avalanche.ORACLE,
       AaveV3Avalanche.DEFAULT_A_TOKEN_IMPL_REV_1,

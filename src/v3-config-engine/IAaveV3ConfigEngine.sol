@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IGenericV3ListingEngine {
+interface IAaveV3ConfigEngine {
   /**
    * @dev Required for naming of a/v/s tokens
-   * Example:
+   * Example (mock):
    * PoolContext({
    *   networkName: 'Polygon',
    *   networkAbbreviation: 'Pol'
@@ -16,7 +16,7 @@ interface IGenericV3ListingEngine {
   }
 
   /**
-   * @dev Example (mock addresses):
+   * @dev Example (mock):
    * Listing({
    *   asset: 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9,
    *   assetSymbol: 'AAVE',
@@ -52,55 +52,25 @@ interface IGenericV3ListingEngine {
     uint256 liqThreshold; // If `0`, the asset will not be enabled as collateral
     uint256 liqBonus; // Only considered if liqThreshold > 0
     uint256 reserveFactor; // Only considered if enabledToBorrow == true
-    uint256 supplyCap; // Always configured
-    uint256 borrowCap; // Always configured, no matter if enabled for borrowing or not
+    uint256 supplyCap; // If passing any value distinct to EngineFlags.KEEP_CURRENT, always configured
+    uint256 borrowCap; // If passing any value distinct to EngineFlags.KEEP_CURRENT, always configured
     uint256 debtCeiling; // Only considered if liqThreshold > 0
     uint256 liqProtocolFee; // Only considered if liqThreshold > 0
     uint8 eModeCategory; // If `O`, no eMode category will be set
   }
 
-  struct AssetsConfig {
-    address[] ids;
-    Basic[] basics;
-    Borrow[] borrows;
-    Collateral[] collaterals;
-    Caps[] caps;
-  }
-
-  struct Basic {
-    string assetSymbol;
-    address priceFeed;
-    address rateStrategy; // Mandatory, no matter if enabled for borrowing or not
-  }
-
-  struct Borrow {
-    bool enabledToBorrow; // Main config flag, if false, some of the other fields will not be considered
-    bool flashloanable;
-    bool stableRateModeEnabled;
-    bool borrowableInIsolation;
-    bool withSiloedBorrowing;
-    uint256 reserveFactor; // With 2 digits precision, `10_00` for 10%. Should be positive and < 100_00
-  }
-
-  struct Collateral {
-    uint256 ltv; // Only considered if liqThreshold > 0. With 2 digits precision, `10_00` for 10%. Should be lower than liquidationThreshold
-    uint256 liqThreshold; // If `0`, the asset will not be enabled as collateral. Same format as ltv, and should be higher
-    uint256 liqBonus; // Only considered if liqThreshold > 0. Same format as ltv
-    uint256 debtCeiling; // Only considered if liqThreshold > 0. In USD and with 2 digits for decimals, e.g. 10_000_00 for 10k
-    uint256 liqProtocolFee; // Only considered if liqThreshold > 0. Same format as ltv
-    uint8 eModeCategory;
-  }
-
-  struct Caps {
-    uint256 supplyCap; // Always configured. In "big units" of the asset, and no decimals. 100 for 100 ETH supply cap
-    uint256 borrowCap; // Always configured, no matter if enabled for borrowing or not. Same format as supply cap
-  }
-
+  /**
+   * @dev Example (mock):
+   * CapsUpdate({
+   *   asset: AaveV3EthereumAssets.AAVE_UNDERLYING,
+   *   supplyCap: 1_000_000,
+   *   borrowCap: EngineFlags.KEEP_CURRENT
+   * }
+   */
   struct CapsUpdate {
     address asset;
-    string assetSymbol;
-    uint256 supplyCap;
-    uint256 borrowCap;
+    uint256 supplyCap; // Pass any value, of EngineFlags.KEEP_CURRENT to keep it as it is
+    uint256 borrowCap; // Pass any value, of EngineFlags.KEEP_CURRENT to keep it as it is
   }
 
   /**
@@ -111,4 +81,11 @@ interface IGenericV3ListingEngine {
    *   More information on the documentation of the struct.
    */
   function listAssets(PoolContext memory context, Listing[] memory listings) external;
+
+  /**
+   * @notice Performs an update of the different caps (supply, borrow) in the Aave pool configured in this engine instance
+   * @param updates `CapsUpdate[]` list of declarative updates containing the new caps
+   *   More information on the documentation of the struct.
+   */
+  function updateCaps(CapsUpdate[] memory updates) external;
 }
