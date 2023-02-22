@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-import {IPoolConfigurator, IAaveOracle, ConfiguratorInputTypes} from 'aave-address-book/AaveV3.sol';
+import {IPool, IPoolConfigurator, IAaveOracle, ConfiguratorInputTypes, DataTypes} from 'aave-address-book/AaveV3.sol';
+import {ReserveConfiguration} from 'aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol';
 import {IERC20Metadata} from 'solidity-utils/contracts/oz-common/interfaces/IERC20Metadata.sol';
 import {IChainlinkAggregator} from '../interfaces/IChainlinkAggregator.sol';
 import {IAaveV3ConfigEngine} from './IAaveV3ConfigEngine.sol';
 import {EngineFlags} from './EngineFlags.sol';
 
 /**
- * @dev Helper smart contract abstracting the complexity of changing configurations on Aave v3, simplifying 
+ * @dev Helper smart contract abstracting the complexity of changing configurations on Aave v3, simplifying
  * listing flow and parameters updates.
  * - It is planned to be used via delegatecall, by any contract having appropriate permissions to
  * do a listing, or any other granular config
@@ -19,6 +20,8 @@ import {EngineFlags} from './EngineFlags.sol';
  * @author BGD Labs
  */
 contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
+  using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+
   struct AssetsConfig {
     address[] ids;
     Basic[] basics;
@@ -48,7 +51,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     uint256 liqBonus; // Only considered if liqThreshold > 0. Same format as ltv
     uint256 debtCeiling; // Only considered if liqThreshold > 0. In USD and with 2 digits for decimals, e.g. 10_000_00 for 10k
     uint256 liqProtocolFee; // Only considered if liqThreshold > 0. Same format as ltv
-    uint8 eModeCategory;
+    uint256 eModeCategory;
   }
 
   struct Caps {
@@ -56,6 +59,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     uint256 borrowCap; // Always configured, no matter if enabled for borrowing or not. Same format as supply cap
   }
 
+  IPool public immutable POOL;
   IPoolConfigurator public immutable POOL_CONFIGURATOR;
   IAaveOracle public immutable ORACLE;
   address public immutable ATOKEN_IMPL;
@@ -65,6 +69,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
   address public immutable COLLECTOR;
 
   constructor(
+    IPool pool,
     IPoolConfigurator configurator,
     IAaveOracle oracle,
     address aTokenImpl,
@@ -73,6 +78,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     address rewardsController,
     address collector
   ) {
+    require(address(pool) != address(0), 'ONLY_NONZERO_POOL');
     require(address(configurator) != address(0), 'ONLY_NONZERO_CONFIGURATOR');
     require(address(oracle) != address(0), 'ONLY_NONZERO_ORACLE');
     require(aTokenImpl != address(0), 'ONLY_NONZERO_ATOKEN');
@@ -81,8 +87,9 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     require(rewardsController != address(0), 'ONLY_NONZERO_REWARDS_CONTROLLER');
     require(collector != address(0), 'ONLY_NONZERO_COLLECTOR');
 
-    POOL_CONFIGURATOR = IPoolConfigurator(configurator);
-    ORACLE = IAaveOracle(oracle);
+    POOL = pool;
+    POOL_CONFIGURATOR = configurator;
+    ORACLE = oracle;
     ATOKEN_IMPL = aTokenImpl;
     VTOKEN_IMPL = vTokenImpl;
     STOKEN_IMPL = sTokenImpl;
@@ -114,6 +121,15 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     AssetsConfig memory configs = _repackCapsUpdate(updates);
 
     _configureCaps(configs.ids, configs.caps);
+  }
+
+  /// @inheritdoc IAaveV3ConfigEngine
+  function updateCollateralSide(CollateralUpdate[] memory updates) public {
+    require(updates.length != 0, 'AT_LEAST_ONE_ASSET_REQUIRED');
+
+    AssetsConfig memory configs = _repackCollateralUpdate(updates);
+
+    _configCollateralSide(configs.ids, configs.collaterals);
   }
 
   function _setPriceFeeds(address[] memory ids, Basic[] memory basics) internal {
@@ -231,6 +247,34 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
   function _configCollateralSide(address[] memory ids, Collateral[] memory collaterals) internal {
     for (uint256 i = 0; i < ids.length; i++) {
       if (collaterals[i].liqThreshold != 0) {
+        if (
+          collaterals[i].ltv == EngineFlags.KEEP_CURRENT ||
+          collaterals[i].liqThreshold == EngineFlags.KEEP_CURRENT ||
+          collaterals[i].liqBonus == EngineFlags.KEEP_CURRENT
+        ) {
+          DataTypes.ReserveConfigurationMap memory configuration = POOL.getConfiguration(ids[i]);
+          (
+            uint256 currentLtv,
+            uint256 currentLiqThreshold,
+            uint256 currentLiqBonus,
+            ,
+            ,
+
+          ) = configuration.getParams();
+
+          if (collaterals[i].ltv == EngineFlags.KEEP_CURRENT) {
+            collaterals[i].ltv = currentLtv;
+          }
+
+          if (collaterals[i].liqThreshold == EngineFlags.KEEP_CURRENT) {
+            collaterals[i].liqThreshold = currentLiqThreshold;
+          }
+
+          if (collaterals[i].liqBonus == EngineFlags.KEEP_CURRENT) {
+            collaterals[i].liqBonus = currentLiqBonus;
+          }
+        }
+
         require(
           collaterals[i].liqThreshold + collaterals[i].liqBonus < 100_00,
           'INVALID_LIQ_PARAMS_ABOVE_100'
@@ -246,15 +290,17 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
           100_00 + collaterals[i].liqBonus
         );
 
-        POOL_CONFIGURATOR.setLiquidationProtocolFee(ids[i], collaterals[i].liqProtocolFee);
+        if (collaterals[i].liqProtocolFee != EngineFlags.KEEP_CURRENT) {
+          POOL_CONFIGURATOR.setLiquidationProtocolFee(ids[i], collaterals[i].liqProtocolFee);
+        }
 
-        if (collaterals[i].debtCeiling != 0) {
+        if (collaterals[i].debtCeiling != EngineFlags.KEEP_CURRENT) {
           POOL_CONFIGURATOR.setDebtCeiling(ids[i], collaterals[i].debtCeiling);
         }
       }
 
-      if (collaterals[i].eModeCategory != 0) {
-        POOL_CONFIGURATOR.setAssetEModeCategory(ids[i], collaterals[i].eModeCategory);
+      if (collaterals[i].eModeCategory != EngineFlags.KEEP_CURRENT) {
+        POOL_CONFIGURATOR.setAssetEModeCategory(ids[i], safeToUint8(collaterals[i].eModeCategory));
       }
     }
   }
@@ -324,5 +370,40 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         borrows: new Borrow[](0),
         collaterals: new Collateral[](0)
       });
+  }
+
+  function _repackCollateralUpdate(CollateralUpdate[] memory updates)
+    internal
+    pure
+    returns (AssetsConfig memory)
+  {
+    address[] memory ids = new address[](updates.length);
+    Collateral[] memory collaterals = new Collateral[](updates.length);
+
+    for (uint256 i = 0; i < updates.length; i++) {
+      ids[i] = updates[i].asset;
+      collaterals[i] = Collateral({
+        ltv: updates[i].ltv,
+        liqThreshold: updates[i].liqThreshold,
+        liqBonus: updates[i].liqBonus,
+        debtCeiling: updates[i].debtCeiling,
+        liqProtocolFee: updates[i].liqProtocolFee,
+        eModeCategory: updates[i].eModeCategory
+      });
+    }
+
+    return
+      AssetsConfig({
+        ids: ids,
+        caps: new Caps[](0),
+        basics: new Basic[](0),
+        borrows: new Borrow[](0),
+        collaterals: collaterals
+      });
+  }
+
+  function safeToUint8(uint256 value) internal pure returns (uint8) {
+    require(value <= type(uint8).max, "Value doesn't fit in 8 bits");
+    return uint8(value);
   }
 }

@@ -74,6 +74,28 @@ interface IAaveV3ConfigEngine {
   }
 
   /**
+   * @dev Example (mock):
+   * CapsUpdate({
+   *   asset: AaveV3EthereumAssets.AAVE_UNDERLYING,
+   *   ltv: 60_00,
+   *   liqThreshold: 70_00,
+   *   liqBonus: EngineFlags.KEEP_CURRENT,
+   *   debtCeiling: EngineFlags.KEEP_CURRENT,
+   *   liqProtocolFee: 7_00,
+   *   eModeCategory: EngineFlags.KEEP_CURRENT
+   * }
+   */
+  struct CollateralUpdate {
+    address asset;
+    uint256 ltv;
+    uint256 liqThreshold;
+    uint256 liqBonus;
+    uint256 debtCeiling;
+    uint256 liqProtocolFee;
+    uint256 eModeCategory;
+  }
+
+  /**
    * @notice Performs a full listing of an asset in the Aave pool configured in this engine instance
    * @param context `PoolContext` struct, effectively meta-data for naming of a/v/s tokens.
    *   More information on the documentation of the struct.
@@ -83,9 +105,16 @@ interface IAaveV3ConfigEngine {
   function listAssets(PoolContext memory context, Listing[] memory listings) external;
 
   /**
-   * @notice Performs an update of the different caps (supply, borrow) in the Aave pool configured in this engine instance
+   * @notice Performs an update of the caps (supply, borrow) of an asset, in the Aave pool configured in this engine instance
    * @param updates `CapsUpdate[]` list of declarative updates containing the new caps
    *   More information on the documentation of the struct.
    */
   function updateCaps(CapsUpdate[] memory updates) external;
+
+  /**
+   * @notice Performs an update of the collateral-related params of an asset, in the Aave pool configured in this engine instance
+   * @param updates `CapsUpCollateralUpdatedate[]` list of declarative updates containing the new parameters
+   *   More information on the documentation of the struct.
+   */
+  function updateCollateralSide(CollateralUpdate[] memory updates) external;
 }

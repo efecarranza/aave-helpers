@@ -12,7 +12,8 @@ import {EngineFlags} from './EngineFlags.sol';
  *   interaction with the Aave protocol.
  * - At the moment covering:
  *   - Listings of new assets on the pool.
- *   - Updates of caps.
+ *   - Updates of caps (supply cap, borrow cap).
+ *   - Updates of collateral parameters (ltv, liq threshold, liq bonus, liq protocol fee, debt ceiling)
  * @author BGD Labs
  */
 abstract contract AaveV3PayloadBase {
@@ -35,10 +36,17 @@ abstract contract AaveV3PayloadBase {
 
     IEngine.Listing[] memory listings = newListings();
     IEngine.CapsUpdate[] memory caps = capsUpdates();
+    IEngine.CollateralUpdate[] memory collaterals = collateralsUpdates();
 
     if (listings.length != 0) {
       address(LISTING_ENGINE).functionDelegateCall(
         abi.encodeWithSelector(LISTING_ENGINE.listAssets.selector, getPoolContext(), listings)
+      );
+    }
+
+    if (collaterals.length != 0) {
+      address(LISTING_ENGINE).functionDelegateCall(
+        abi.encodeWithSelector(LISTING_ENGINE.updateCollateralSide.selector, caps)
       );
     }
 
@@ -56,6 +64,9 @@ abstract contract AaveV3PayloadBase {
 
   /// @dev to be defined in the child with a list of caps to update
   function capsUpdates() public view virtual returns (IEngine.CapsUpdate[] memory) {}
+
+  /// @dev to be defined in the child with a list of collaterals' params to update
+  function collateralsUpdates() public view virtual returns (IEngine.CollateralUpdate[] memory) {}
 
   /// @dev the lack of support for immutable strings kinds of forces for this
   /// Besides that, it can actually be useful being able to change the naming, but remote
