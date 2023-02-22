@@ -6,7 +6,7 @@
 
 The `AaveV3ConfigEngine` is a helper smart contract to abstract good practises when doing "admin" interactions with the Aave v3 protocol, but built on top, without touching the core contracts.
 
-At the same time, it defines a new interface oriented to simplify developer experience when coding proposal payloads: the `AaveV3ConfigEngine` is built from our experience supervising governance payloads review, for actions like full cycle of listing assets, modify caps (supply/borrow), or any other.
+At the same time, it defines a new interface oriented to simplify developer experience when coding proposal payloads: the `AaveV3ConfigEngine` is built from our experience supervising governance payloads review, for actions like full cycle of listing assets, modify caps (supply/borrow), change collateral-related parameters.
 
 ## How to use the engine?
 
@@ -20,19 +20,22 @@ If you want just to do one or multiple listings, you only need to define the lis
 
 Do you want instead to update supply/borrow caps? Same approach as with the listings, you only need to define the update of caps within a `capsUpdates()` function, and the base payload will take care of the rest.
 
+Change collateral-related parameters? Same approach previous, you only need to define the update within a `updateCollateralSide()` function, and the base payload will take care of the rest.
+
 ### Internal aspects to consider
 
-- Frequently, at the same time that you want to do an update of paremeters or listing, you also want to do something extra before or after (e.g. create an eMode category that you will use for the new asset to be listed).
-T
-he `Base Aave v3 Payload` defines `_preExecute()` and `_postExecute()` hook functions, that you can redefine on your payload and will the execute before and after all configs changes/listings you define.
+- Frequently, at the same time that you want to do an update of parameters or listing, you also want to do something extra before or after (e.g. create an eMode category that you will use for the new asset to be listed).
+The `Base Aave v3 Payload` defines `_preExecute()` and `_postExecute()` hook functions, that you can redefine on your payload and will the execute before and after all configs changes/listings you define.
 
-- The payload also allow you to group changes of parameters and listings, just by defining at the same time the aforementioned `newListings()` and `capsUpdate()`. For reference, execution ordering is the following:
+- The payload also allow you to group changes of parameters and listings, just by defining at the same time the aforementioned `newListings()`, `capsUpdate()` and/or `updateCollateralSide()`. For reference, the execution ordering is the following:
   1. `_preExecute()`
   2. `newListings()`
   3. `capsUpdates()`
+  4. `updateCollateralSide()`
   4. `_postExecute()`
 
 ## Links to examples
 - [Simple mock listing on Aave v3 Polygon](../test/mocks/AaveV3PolygonMockListing.sol)
 - [Mock caps updates (only supply, keeping current borrow cap) on Aave v3 Ethereum](../test/mocks/AaveV3EthereumMockCapUpdate.sol)
+- [Mock collateral updates (changing some, keeping current values on others), on Aave v3 Avalanche](../test/mocks/AaveV3AvalancheCollateralUpdate.sol)
 
