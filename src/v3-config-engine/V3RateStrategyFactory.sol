@@ -7,13 +7,9 @@ import {DefaultReserveInterestRateStrategy} from 'aave-v3-core/contracts/protoco
 import {IDefaultInterestRateStrategy} from 'aave-v3-core/contracts/interfaces/IDefaultInterestRateStrategy.sol';
 import {IV3RateStrategyFactory} from './IV3RateStrategyFactory.sol';
 
-interface ICustomRateStrategy {
-  function CUSTOM() external view returns (uint256);
-}
-
 /**
  * @title V3RateStrategyFactory
- * @notice Factory contract to create and keep record of Aave v3 of new rate strategy contracts
+ * @notice Factory contract to create and keep record of Aave v3 rate strategy contracts
  * @dev Associated to an specific Aave v3 Pool, via its addresses provider
  * @author BGD labs
  */
@@ -27,46 +23,30 @@ contract V3RateStrategyFactory is Initializable, IV3RateStrategyFactory {
     ADDRESSES_PROVIDER = addressesProvider;
   }
 
-  function initialize() external initializer {
-    refreshStrategies();
-  }
+  /// @dev Passing a arbitrary list of rate strategies to be registered as if they would have been deployed
+  /// from this factory, as they share exactly the same code
+  function initialize(IDefaultInterestRateStrategy[] memory liveStrategies) external initializer {
+    for (uint256 i = 0; i < liveStrategies.length; i++) {
+      RateStrategyParams memory params = RateStrategyParams({
+        optimalUsageRatio: liveStrategies[i].OPTIMAL_USAGE_RATIO(),
+        baseVariableBorrowRate: liveStrategies[i].getBaseVariableBorrowRate(),
+        variableRateSlope1: liveStrategies[i].getVariableRateSlope1(),
+        variableRateSlope2: liveStrategies[i].getVariableRateSlope2(),
+        stableRateSlope1: liveStrategies[i].getStableRateSlope1(),
+        stableRateSlope2: liveStrategies[i].getStableRateSlope2(),
+        baseStableRateOffset: (liveStrategies[i].getBaseStableBorrowRate() > 0)
+          ? (liveStrategies[i].getBaseStableBorrowRate() -
+            liveStrategies[i].getBaseVariableBorrowRate())
+          : 0, // The baseStableRateOffset is not exposed, so needs to be inferred for now
+        stableRateExcessOffset: liveStrategies[i].getStableRateExcessOffset(),
+        optimalStableToTotalDebtRatio: liveStrategies[i].OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO()
+      });
 
-  ///@inheritdoc IV3RateStrategyFactory
-  function refreshStrategies() public {
-    IPool pool = IPool(ADDRESSES_PROVIDER.getPool());
+      bytes32 hashedParams = strategyHashFromParams(params);
 
-    address[] memory assetsListed = pool.getReservesList();
-    for (uint256 i = 0; i < assetsListed.length; i++) {
-      IDefaultInterestRateStrategy strat = IDefaultInterestRateStrategy(
-        pool.getReserveData(assetsListed[i]).interestRateStrategyAddress
-      );
+      _strategyByParamsHash[hashedParams] = address(liveStrategies[i]);
 
-      if (address(strat) != address(0)) {
-        /// @dev We assume all strategies at deployment time of this factory are non-custom,
-        /// by detecting the non-presence of a CUSTOM() function on them. This is correct
-        /// because the current strategies don't have receive() or fallback()
-        try ICustomRateStrategy(address(strat)).CUSTOM() {
-          continue;
-        } catch {}
-
-        _strategyByParamsHash[
-          strategyHashFromParams(
-            RateStrategyParams({
-              optimalUsageRatio: strat.OPTIMAL_USAGE_RATIO(),
-              baseVariableBorrowRate: strat.getBaseVariableBorrowRate(),
-              variableRateSlope1: strat.getVariableRateSlope1(),
-              variableRateSlope2: strat.getVariableRateSlope2(),
-              stableRateSlope1: strat.getStableRateSlope1(),
-              stableRateSlope2: strat.getStableRateSlope2(),
-              baseStableRateOffset: (strat.getBaseStableBorrowRate() > 0)
-                ? (strat.getBaseStableBorrowRate() - strat.getBaseVariableBorrowRate())
-                : 0, // The baseStableRateOffset is not exposed, so needs to be inferred for now
-              stableRateExcessOffset: strat.getStableRateExcessOffset(),
-              optimalStableToTotalDebtRatio: strat.OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO()
-            })
-          )
-        ] = address(strat);
-      }
+      emit RateStrategyCreated(address(liveStrategies[i]), hashedParams, params);
     }
   }
 
@@ -94,6 +74,8 @@ contract V3RateStrategyFactory is Initializable, IV3RateStrategyFactory {
           )
         );
         _strategyByParamsHash[strategyHashedParams] = cachedStrategy;
+
+        emit RateStrategyCreated(cachedStrategy, strategyHashedParams, params[i]);
       }
 
       strategies[i] = cachedStrategy;

@@ -1,11 +1,17 @@
-// SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 import {IPoolAddressesProvider} from 'aave-address-book/AaveV3.sol';
 
 interface IV3RateStrategyFactory {
-  event RateStrategyCreated(address indexed strategy);
+  event RateStrategyCreated(
+    address indexed strategy,
+    bytes32 indexed hashedParam,
+    RateStrategyParams params
+  );
 
+  /// @dev same parameters and the ones received on the constructor of DefaultReserveInterestRateStrategy
+  /// in practise defining the strategy itself
   struct RateStrategyParams {
     uint256 optimalUsageRatio;
     uint256 baseVariableBorrowRate;
@@ -18,10 +24,21 @@ interface IV3RateStrategyFactory {
     uint256 optimalStableToTotalDebtRatio;
   }
 
+  /**
+   * @notice Create new rate strategies from a list of parameters
+   * @dev If a strategy with exactly the same `RateStrategyParams` already exists, no creation happens but
+   *  its address is returned
+   * @param params `RateStrategyParams[]` list of parameters for multiple strategies
+   * @return address[] list of strategies
+   */
   function createStrategies(RateStrategyParams[] memory params) external returns (address[] memory);
 
-  function refreshStrategies() external;
-
+  /**
+   * @notice Returns the identifier of a rate strategy from its parameters
+   * @param params `RateStrategyParams` the parameters of the rate strategy
+   * @return bytes32 the keccak256 hash generated from the `RateStrategyParams` parameters
+   *   to be used as identifier of the rate strategy on the factory
+   */
   function strategyHashFromParams(RateStrategyParams memory params) external pure returns (bytes32);
 
   /**
