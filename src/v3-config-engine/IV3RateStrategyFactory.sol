@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IPoolAddressesProvider} from 'aave-address-book/AaveV3.sol';
+import {IDefaultInterestRateStrategy} from 'aave-v3-core/contracts/interfaces/IDefaultInterestRateStrategy.sol';
 
 interface IV3RateStrategyFactory {
   event RateStrategyCreated(
@@ -54,6 +55,39 @@ interface IV3RateStrategyFactory {
    * @return address the address of the strategy
    */
   function getStrategyByParams(RateStrategyParams memory params) external view returns (address);
+
+  /**
+   * @notice From an asset in the Aave v3 pool, returns its rate strategy and parameters of it
+   * @param asset The address of the asset
+   * @return (address, RateStrategyParams)  the address of the strategy or `address(0)` if not configured
+   *  If not configured, empty RateStrategyParams struct as parameters
+   */
+  function getCurrentRateData(address asset)
+    external
+    view
+    returns (address, RateStrategyParams memory);
+
+  /**
+   * @notice From an asset in the Aave v3 pool, returns exclusively its parameters
+   * @param asset The address of the asset
+   * @return RateStrategyParams The parameters or the strategy, or empty RateStrategyParams struct
+   */
+  function getCurrentRateSimpleParams(address asset)
+    external
+    view
+    returns (RateStrategyParams memory);
+
+
+
+  /**
+   * @notice From a rate strategy address, returns its parameters
+   * @param strategy The address of the rate strategy
+   * @return RateStrategyParams Struct with the parameters of the strategy
+   */
+  function getLiveStrategyData(IDefaultInterestRateStrategy strategy)
+    external
+    view
+    returns (RateStrategyParams memory);
 
   function ADDRESSES_PROVIDER() external view returns (IPoolAddressesProvider);
 }

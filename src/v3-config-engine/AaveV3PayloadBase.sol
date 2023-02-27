@@ -2,7 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {Address} from 'solidity-utils/contracts/oz-common/Address.sol';
+import {WadRayMath} from 'aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol';
 import {IAaveV3ConfigEngine as IEngine} from './IAaveV3ConfigEngine.sol';
+import {IV3RateStrategyFactory as Rates} from './IV3RateStrategyFactory.sol';
 import {EngineFlags} from './EngineFlags.sol';
 
 /**
@@ -37,6 +39,7 @@ abstract contract AaveV3PayloadBase {
     IEngine.Listing[] memory listings = newListings();
     IEngine.CapsUpdate[] memory caps = capsUpdates();
     IEngine.CollateralUpdate[] memory collaterals = collateralsUpdates();
+    IEngine.RateStrategyUpdate[] memory rates = rateStrategiesUpdates();
 
     if (listings.length != 0) {
       address(LISTING_ENGINE).functionDelegateCall(
@@ -46,7 +49,13 @@ abstract contract AaveV3PayloadBase {
 
     if (collaterals.length != 0) {
       address(LISTING_ENGINE).functionDelegateCall(
-        abi.encodeWithSelector(LISTING_ENGINE.updateCollateralSide.selector, caps)
+        abi.encodeWithSelector(LISTING_ENGINE.updateCollateralSide.selector, collaterals)
+      );
+    }
+
+    if (rates.length != 0) {
+      address(LISTING_ENGINE).functionDelegateCall(
+        abi.encodeWithSelector(LISTING_ENGINE.updateRateStrategies.selector, rates)
       );
     }
 
@@ -59,6 +68,13 @@ abstract contract AaveV3PayloadBase {
     _postExecute();
   }
 
+  /** @dev Converts basis points to RAY units
+   * e.g. 10_00 (10.00%) will return 100000000000000000000000000
+   */
+  function _bpsToRay(uint256 amount) internal pure returns (uint256) {
+    return (amount * WadRayMath.RAY) / 10_000;
+  }
+
   /// @dev to be defined in the child with a list of new assets to list
   function newListings() public view virtual returns (IEngine.Listing[] memory) {}
 
@@ -67,6 +83,14 @@ abstract contract AaveV3PayloadBase {
 
   /// @dev to be defined in the child with a list of collaterals' params to update
   function collateralsUpdates() public view virtual returns (IEngine.CollateralUpdate[] memory) {}
+
+  /// @dev to be defined in the child with a list of set of parameters of rate strategies
+  function rateStrategiesUpdates()
+    public
+    view
+    virtual
+    returns (IEngine.RateStrategyUpdate[] memory)
+  {}
 
   /// @dev the lack of support for immutable strings kinds of forces for this
   /// Besides that, it can actually be useful being able to change the naming, but remote

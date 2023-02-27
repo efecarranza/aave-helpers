@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-import {IPool, IPoolConfigurator, IAaveOracle, ConfiguratorInputTypes, DataTypes} from 'aave-address-book/AaveV3.sol';
+import {ConfiguratorInputTypes, DataTypes} from 'aave-address-book/AaveV3.sol';
 import {ReserveConfiguration} from 'aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol';
 import {IERC20Metadata} from 'solidity-utils/contracts/oz-common/interfaces/IERC20Metadata.sol';
 import {IChainlinkAggregator} from '../interfaces/IChainlinkAggregator.sol';
-import {IAaveV3ConfigEngine} from './IAaveV3ConfigEngine.sol';
 import {EngineFlags} from './EngineFlags.sol';
+import './IAaveV3ConfigEngine.sol';
 
 /**
  * @dev Helper smart contract abstracting the complexity of changing configurations on Aave v3, simplifying
@@ -28,12 +28,13 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     Borrow[] borrows;
     Collateral[] collaterals;
     Caps[] caps;
+    IV3RateStrategyFactory.RateStrategyParams[] rates;
   }
 
   struct Basic {
     string assetSymbol;
     address priceFeed;
-    address rateStrategy; // Mandatory, no matter if enabled for borrowing or not
+    IV3RateStrategyFactory.RateStrategyParams rateStrategyParams;
   }
 
   struct Borrow {
@@ -67,6 +68,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
   address public immutable STOKEN_IMPL;
   address public immutable REWARDS_CONTROLLER;
   address public immutable COLLECTOR;
+  IV3RateStrategyFactory public immutable RATE_STRATEGIES_FACTORY;
 
   constructor(
     IPool pool,
@@ -76,7 +78,8 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     address vTokenImpl,
     address sTokenImpl,
     address rewardsController,
-    address collector
+    address collector,
+    IV3RateStrategyFactory rateStrategiesFactory
   ) {
     require(address(pool) != address(0), 'ONLY_NONZERO_POOL');
     require(address(configurator) != address(0), 'ONLY_NONZERO_CONFIGURATOR');
@@ -95,6 +98,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     STOKEN_IMPL = sTokenImpl;
     REWARDS_CONTROLLER = rewardsController;
     COLLECTOR = collector;
+    RATE_STRATEGIES_FACTORY = rateStrategiesFactory;
   }
 
   /// @inheritdoc IAaveV3ConfigEngine
@@ -105,7 +109,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
 
     _setPriceFeeds(configs.ids, configs.basics);
 
-    _initAssets(context, configs.ids, configs.basics);
+    _initAssets(context, configs.ids, configs.basics, configs.rates);
 
     _configureCaps(configs.ids, configs.caps);
 
@@ -116,7 +120,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
 
   /// @inheritdoc IAaveV3ConfigEngine
   function updateCaps(CapsUpdate[] memory updates) public {
-    require(updates.length != 0, 'AT_LEAST_ONE_ASSET_REQUIRED');
+    require(updates.length != 0, 'AT_LEAST_ONE_UPDATE_REQUIRED');
 
     AssetsConfig memory configs = _repackCapsUpdate(updates);
 
@@ -125,11 +129,20 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
 
   /// @inheritdoc IAaveV3ConfigEngine
   function updateCollateralSide(CollateralUpdate[] memory updates) public {
-    require(updates.length != 0, 'AT_LEAST_ONE_ASSET_REQUIRED');
+    require(updates.length != 0, 'AT_LEAST_ONE_UPDATE_REQUIRED');
 
     AssetsConfig memory configs = _repackCollateralUpdate(updates);
 
     _configCollateralSide(configs.ids, configs.collaterals);
+  }
+
+  /// @inheritdoc IAaveV3ConfigEngine
+  function updateRateStrategies(RateStrategyUpdate[] memory updates) public {
+    require(updates.length != 0, 'AT_LEAST_ONE_UPDATE_REQUIRED');
+
+    AssetsConfig memory configs = _repackRatesUpdate(updates);
+
+    _configRateStrategies(configs.ids, configs.rates);
   }
 
   function _setPriceFeeds(address[] memory ids, Basic[] memory basics) internal {
@@ -153,21 +166,23 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
   function _initAssets(
     PoolContext memory context,
     address[] memory ids,
-    Basic[] memory basics
+    Basic[] memory basics,
+    IV3RateStrategyFactory.RateStrategyParams[] memory rates
   ) internal {
     ConfiguratorInputTypes.InitReserveInput[]
       memory initReserveInputs = new ConfiguratorInputTypes.InitReserveInput[](ids.length);
+    address[] memory strategies = RATE_STRATEGIES_FACTORY.createStrategies(rates);
+
     for (uint256 i = 0; i < ids.length; i++) {
       uint8 decimals = IERC20Metadata(ids[i]).decimals();
       require(decimals > 0, 'INVALID_ASSET_DECIMALS');
-      require(basics[i].rateStrategy != address(0), 'ONLY_NONZERO_RATE_STRATEGY');
 
       initReserveInputs[i] = ConfiguratorInputTypes.InitReserveInput({
         aTokenImpl: ATOKEN_IMPL,
         stableDebtTokenImpl: STOKEN_IMPL,
         variableDebtTokenImpl: VTOKEN_IMPL,
         underlyingAssetDecimals: decimals,
-        interestRateStrategyAddress: basics[i].rateStrategy,
+        interestRateStrategyAddress: strategies[i],
         underlyingAsset: ids[i],
         treasury: COLLECTOR,
         incentivesController: REWARDS_CONTROLLER,
@@ -244,6 +259,73 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     }
   }
 
+  function _configRateStrategies(
+    address[] memory ids,
+    IV3RateStrategyFactory.RateStrategyParams[] memory strategiesParams
+  ) internal {
+    for (uint256 i = 0; i < strategiesParams.length; i++) {
+      if (
+        strategiesParams[i].variableRateSlope1 == EngineFlags.KEEP_CURRENT ||
+        strategiesParams[i].variableRateSlope2 == EngineFlags.KEEP_CURRENT ||
+        strategiesParams[i].optimalUsageRatio == EngineFlags.KEEP_CURRENT ||
+        strategiesParams[i].baseVariableBorrowRate == EngineFlags.KEEP_CURRENT ||
+        strategiesParams[i].stableRateSlope1 == EngineFlags.KEEP_CURRENT ||
+        strategiesParams[i].stableRateSlope2 == EngineFlags.KEEP_CURRENT ||
+        strategiesParams[i].baseStableRateOffset == EngineFlags.KEEP_CURRENT ||
+        strategiesParams[i].stableRateExcessOffset == EngineFlags.KEEP_CURRENT ||
+        strategiesParams[i].optimalStableToTotalDebtRatio == EngineFlags.KEEP_CURRENT
+      ) {
+        (
+          ,
+          IV3RateStrategyFactory.RateStrategyParams memory currentStrategyData
+        ) = RATE_STRATEGIES_FACTORY.getCurrentRateData(ids[i]);
+
+        if (strategiesParams[i].variableRateSlope1 == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].variableRateSlope1 = currentStrategyData.variableRateSlope1;
+        }
+
+        if (strategiesParams[i].variableRateSlope2 == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].variableRateSlope2 = currentStrategyData.variableRateSlope2;
+        }
+
+        if (strategiesParams[i].optimalUsageRatio == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].optimalUsageRatio = currentStrategyData.optimalUsageRatio;
+        }
+
+        if (strategiesParams[i].baseVariableBorrowRate == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].baseVariableBorrowRate = currentStrategyData.baseVariableBorrowRate;
+        }
+
+        if (strategiesParams[i].stableRateSlope1 == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].stableRateSlope1 = currentStrategyData.stableRateSlope1;
+        }
+
+        if (strategiesParams[i].stableRateSlope2 == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].stableRateSlope2 = currentStrategyData.stableRateSlope2;
+        }
+
+        if (strategiesParams[i].baseStableRateOffset == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].baseStableRateOffset = currentStrategyData.baseStableRateOffset;
+        }
+
+        if (strategiesParams[i].stableRateExcessOffset == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].stableRateExcessOffset = currentStrategyData.stableRateExcessOffset;
+        }
+
+        if (strategiesParams[i].optimalStableToTotalDebtRatio == EngineFlags.KEEP_CURRENT) {
+          strategiesParams[i].optimalStableToTotalDebtRatio = currentStrategyData
+            .optimalStableToTotalDebtRatio;
+        }
+      }
+    }
+
+    address[] memory strategies = RATE_STRATEGIES_FACTORY.createStrategies(strategiesParams);
+
+    for (uint256 i = 0; i < strategies.length; i++) {
+      POOL_CONFIGURATOR.setReserveInterestRateStrategyAddress(ids[i], strategies[i]);
+    }
+  }
+
   function _configCollateralSide(address[] memory ids, Collateral[] memory collaterals) internal {
     for (uint256 i = 0; i < ids.length; i++) {
       if (collaterals[i].liqThreshold != 0) {
@@ -311,6 +393,8 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     Borrow[] memory borrows = new Borrow[](listings.length);
     Collateral[] memory collaterals = new Collateral[](listings.length);
     Caps[] memory caps = new Caps[](listings.length);
+    IV3RateStrategyFactory.RateStrategyParams[]
+      memory rates = new IV3RateStrategyFactory.RateStrategyParams[](listings.length);
 
     for (uint256 i = 0; i < listings.length; i++) {
       require(listings[i].asset != address(0), 'INVALID_ASSET');
@@ -318,7 +402,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
       basics[i] = Basic({
         assetSymbol: listings[i].assetSymbol,
         priceFeed: listings[i].priceFeed,
-        rateStrategy: listings[i].rateStrategy
+        rateStrategyParams: listings[i].rateStrategyParams
       });
       borrows[i] = Borrow({
         enabledToBorrow: listings[i].enabledToBorrow,
@@ -337,6 +421,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         eModeCategory: listings[i].eModeCategory
       });
       caps[i] = Caps({supplyCap: listings[i].supplyCap, borrowCap: listings[i].borrowCap});
+      rates[i] = listings[i].rateStrategyParams;
     }
 
     return
@@ -345,7 +430,8 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         basics: basics,
         borrows: borrows,
         collaterals: collaterals,
-        caps: caps
+        caps: caps,
+        rates: rates
       });
   }
 
@@ -368,6 +454,32 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         caps: caps,
         basics: new Basic[](0),
         borrows: new Borrow[](0),
+        collaterals: new Collateral[](0),
+        rates: new IV3RateStrategyFactory.RateStrategyParams[](0)
+      });
+  }
+
+  function _repackRatesUpdate(RateStrategyUpdate[] memory updates)
+    internal
+    pure
+    returns (AssetsConfig memory)
+  {
+    address[] memory ids = new address[](updates.length);
+    IV3RateStrategyFactory.RateStrategyParams[]
+      memory rates = new IV3RateStrategyFactory.RateStrategyParams[](updates.length);
+
+    for (uint256 i = 0; i < updates.length; i++) {
+      ids[i] = updates[i].asset;
+      rates[i] = updates[i].params;
+    }
+
+    return
+      AssetsConfig({
+        ids: ids,
+        rates: rates,
+        basics: new Basic[](0),
+        borrows: new Borrow[](0),
+        caps: new Caps[](0),
         collaterals: new Collateral[](0)
       });
   }
@@ -398,12 +510,13 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         caps: new Caps[](0),
         basics: new Basic[](0),
         borrows: new Borrow[](0),
-        collaterals: collaterals
+        collaterals: collaterals,
+        rates: new IV3RateStrategyFactory.RateStrategyParams[](0)
       });
   }
 
   function safeToUint8(uint256 value) internal pure returns (uint8) {
-    require(value <= type(uint8).max, "Value doesn't fit in 8 bits");
+    require(value <= type(uint8).max, 'Value doesnt fit in 8 bits');
     return uint8(value);
   }
 }

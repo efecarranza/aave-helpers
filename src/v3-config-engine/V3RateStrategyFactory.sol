@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IPoolAddressesProvider, IPool, DataTypes, IReserveInterestRateStrategy} from 'aave-address-book/AaveV3.sol';
+import {IPoolAddressesProvider, IPool} from 'aave-address-book/AaveV3.sol';
 import {Initializable} from 'solidity-utils/contracts/transparent-proxy/Initializable.sol';
 import {DefaultReserveInterestRateStrategy} from 'aave-v3-core/contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol';
-import {IDefaultInterestRateStrategy} from 'aave-v3-core/contracts/interfaces/IDefaultInterestRateStrategy.sol';
-import {IV3RateStrategyFactory} from './IV3RateStrategyFactory.sol';
+import './IV3RateStrategyFactory.sol';
 
 /**
  * @title V3RateStrategyFactory
@@ -27,24 +26,12 @@ contract V3RateStrategyFactory is Initializable, IV3RateStrategyFactory {
   /// from this factory, as they share exactly the same code
   function initialize(IDefaultInterestRateStrategy[] memory liveStrategies) external initializer {
     for (uint256 i = 0; i < liveStrategies.length; i++) {
-      RateStrategyParams memory params = RateStrategyParams({
-        optimalUsageRatio: liveStrategies[i].OPTIMAL_USAGE_RATIO(),
-        baseVariableBorrowRate: liveStrategies[i].getBaseVariableBorrowRate(),
-        variableRateSlope1: liveStrategies[i].getVariableRateSlope1(),
-        variableRateSlope2: liveStrategies[i].getVariableRateSlope2(),
-        stableRateSlope1: liveStrategies[i].getStableRateSlope1(),
-        stableRateSlope2: liveStrategies[i].getStableRateSlope2(),
-        baseStableRateOffset: (liveStrategies[i].getBaseStableBorrowRate() > 0)
-          ? (liveStrategies[i].getBaseStableBorrowRate() -
-            liveStrategies[i].getBaseVariableBorrowRate())
-          : 0, // The baseStableRateOffset is not exposed, so needs to be inferred for now
-        stableRateExcessOffset: liveStrategies[i].getStableRateExcessOffset(),
-        optimalStableToTotalDebtRatio: liveStrategies[i].OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO()
-      });
+      RateStrategyParams memory params = getLiveStrategyData(liveStrategies[i]);
 
       bytes32 hashedParams = strategyHashFromParams(params);
 
       _strategyByParamsHash[hashedParams] = address(liveStrategies[i]);
+      _strategies.push(address(liveStrategies[i]));
 
       emit RateStrategyCreated(address(liveStrategies[i]), hashedParams, params);
     }
@@ -74,6 +61,7 @@ contract V3RateStrategyFactory is Initializable, IV3RateStrategyFactory {
           )
         );
         _strategyByParamsHash[strategyHashedParams] = cachedStrategy;
+        _strategies.push(cachedStrategy);
 
         emit RateStrategyCreated(cachedStrategy, strategyHashedParams, params[i]);
       }
@@ -110,5 +98,65 @@ contract V3RateStrategyFactory is Initializable, IV3RateStrategyFactory {
   ///@inheritdoc IV3RateStrategyFactory
   function getStrategyByParams(RateStrategyParams memory params) external view returns (address) {
     return _strategyByParamsHash[strategyHashFromParams(params)];
+  }
+
+  ///@inheritdoc IV3RateStrategyFactory
+  function getCurrentRateData(address asset)
+    external
+    view
+    returns (address, RateStrategyParams memory)
+  {
+    RateStrategyParams memory params;
+
+    IDefaultInterestRateStrategy strategy = IDefaultInterestRateStrategy(
+      IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset).interestRateStrategyAddress
+    );
+
+    if (address(strategy) != address(0)) {
+      params = getLiveStrategyData(IDefaultInterestRateStrategy(strategy));
+    }
+
+    return (address(strategy), params);
+  }
+
+  ///@inheritdoc IV3RateStrategyFactory
+  function getCurrentRateSimpleParams(address asset)
+    external
+    view
+    returns (RateStrategyParams memory)
+  {
+    RateStrategyParams memory params;
+
+    IDefaultInterestRateStrategy strategy = IDefaultInterestRateStrategy(
+      IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset).interestRateStrategyAddress
+    );
+
+    if (address(strategy) != address(0)) {
+      params = getLiveStrategyData(IDefaultInterestRateStrategy(strategy));
+    }
+
+    return params;
+  }
+
+  ///@inheritdoc IV3RateStrategyFactory
+  function getLiveStrategyData(IDefaultInterestRateStrategy strategy)
+    public
+    view
+    returns (RateStrategyParams memory)
+  {
+    return
+      RateStrategyParams({
+        optimalUsageRatio: strategy.OPTIMAL_USAGE_RATIO(),
+        baseVariableBorrowRate: strategy.getBaseVariableBorrowRate(),
+        variableRateSlope1: strategy.getVariableRateSlope1(),
+        variableRateSlope2: strategy.getVariableRateSlope2(),
+        stableRateSlope1: strategy.getStableRateSlope1(),
+        stableRateSlope2: strategy.getStableRateSlope2(),
+        baseStableRateOffset: (strategy.getBaseStableBorrowRate() > 0)
+          ? (strategy.getBaseStableBorrowRate() - strategy.getBaseVariableBorrowRate())
+          : 0, // The baseStableRateOffset is not exposed, so needs to be inferred for now
+        stableRateExcessOffset: strategy.getStableRateExcessOffset(),
+        optimalStableToTotalDebtRatio: strategy.OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO()
+      });
   }
 }

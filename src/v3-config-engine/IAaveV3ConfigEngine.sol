@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {IPool, IPoolConfigurator, IAaveOracle} from 'aave-address-book/AaveV3.sol';
+import {IV3RateStrategyFactory} from './IV3RateStrategyFactory.sol';
+
+/// @dev Examples here assume the usage of the `AaveV3PayloadBase` base contracts
+/// contained in this same repository
 interface IAaveV3ConfigEngine {
   /**
    * @dev Required for naming of a/v/s tokens
@@ -21,7 +26,17 @@ interface IAaveV3ConfigEngine {
    *   asset: 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9,
    *   assetSymbol: 'AAVE',
    *   priceFeed: 0x547a514d5e3769680Ce22B2361c10Ea13619e8a9,
-   *   rateStrategy: 0x03733F4E008d36f2e37F0080fF1c8DF756622E6F,
+   *   rateStrategyParams: Rates.RateStrategyParams({
+   *     optimalUsageRatio: _bpsToRay(80_00),
+   *     baseVariableBorrowRate: _bpsToRay(25), // 0.25%
+   *     variableRateSlope1: _bpsToRay(3_00),
+   *     variableRateSlope2: _bpsToRay(75_00),
+   *     stableRateSlope1: _bpsToRay(3_00),
+   *     stableRateSlope2: _bpsToRay(75_00),
+   *     baseStableRateOffset: _bpsToRay(2_00),
+   *     stableRateExcessOffset: _bpsToRay(3_00),
+   *     optimalStableToTotalDebtRatio: _bpsToRay(30_00)
+   *   }),
    *   enabledToBorrow: true,
    *   flashloanable: true,
    *   stableRateModeEnabled: false,
@@ -42,7 +57,7 @@ interface IAaveV3ConfigEngine {
     address asset;
     string assetSymbol;
     address priceFeed;
-    address rateStrategy; // Mandatory, no matter if enabled for borrowing or not
+    IV3RateStrategyFactory.RateStrategyParams rateStrategyParams; // Mandatory, no matter if enabled for borrowing or not
     bool enabledToBorrow;
     bool stableRateModeEnabled; // Only considered is enabledToBorrow == true
     bool borrowableInIsolation; // Only considered is enabledToBorrow == true
@@ -83,7 +98,7 @@ interface IAaveV3ConfigEngine {
    *   debtCeiling: EngineFlags.KEEP_CURRENT,
    *   liqProtocolFee: 7_00,
    *   eModeCategory: EngineFlags.KEEP_CURRENT
-   * }
+   * })
    */
   struct CollateralUpdate {
     address asset;
@@ -93,6 +108,28 @@ interface IAaveV3ConfigEngine {
     uint256 debtCeiling;
     uint256 liqProtocolFee;
     uint256 eModeCategory;
+  }
+
+  /**
+   * @dev Example (mock):
+   * RateStrategyUpdate({
+   *   asset: AaveV3OptimismAssets.USDT_UNDERLYING,
+   *   params: Rates.RateStrategyParams({
+   *     optimalUsageRatio: _bpsToRay(80_00),
+   *     baseVariableBorrowRate: EngineFlags.KEEP_CURRENT,
+   *     variableRateSlope1: EngineFlags.KEEP_CURRENT,
+   *     variableRateSlope2: _bpsToRay(75_00),
+   *     stableRateSlope1: EngineFlags.KEEP_CURRENT,
+   *     stableRateSlope2: _bpsToRay(75_00),
+   *     baseStableRateOffset: EngineFlags.KEEP_CURRENT,
+   *     stableRateExcessOffset: EngineFlags.KEEP_CURRENT,
+   *     optimalStableToTotalDebtRatio: EngineFlags.KEEP_CURRENT
+   *   })
+   * })
+   */
+  struct RateStrategyUpdate {
+    address asset;
+    IV3RateStrategyFactory.RateStrategyParams params;
   }
 
   /**
@@ -112,9 +149,35 @@ interface IAaveV3ConfigEngine {
   function updateCaps(CapsUpdate[] memory updates) external;
 
   /**
+   * @notice Performs an update the rate strategy params of an asset, in the Aave pool configured in this engine instance
+   * @dev The engine itself manages if a new rate strategy needs to be deployed or if an existing one can be re-used
+   * @param updates `RateStrategyUpdate[]` list of declarative updates containing the new rate strategy params
+   *   More information on the documentation of the struct.
+   */
+  function updateRateStrategies(RateStrategyUpdate[] memory updates) external;
+
+  /**
    * @notice Performs an update of the collateral-related params of an asset, in the Aave pool configured in this engine instance
    * @param updates `CapsUpCollateralUpdatedate[]` list of declarative updates containing the new parameters
    *   More information on the documentation of the struct.
    */
   function updateCollateralSide(CollateralUpdate[] memory updates) external;
+
+  function RATE_STRATEGIES_FACTORY() external view returns (IV3RateStrategyFactory);
+
+  function POOL() external view returns (IPool);
+
+  function POOL_CONFIGURATOR() external view returns (IPoolConfigurator);
+
+  function ORACLE() external view returns (IAaveOracle);
+
+  function ATOKEN_IMPL() external view returns (address);
+
+  function VTOKEN_IMPL() external view returns (address);
+
+  function STOKEN_IMPL() external view returns (address);
+
+  function REWARDS_CONTROLLER() external view returns (address);
+
+  function COLLECTOR() external view returns (address);
 }

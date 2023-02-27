@@ -9,16 +9,18 @@ import '../../v3-config-engine/AaveV3PayloadPolygon.sol';
  * @author BGD Labs
  */
 contract AaveV3PolygonMockListing is AaveV3PayloadPolygon {
-  function newListings() public pure override returns (IEngine.Listing[] memory) {
+  function newListings() public view override returns (IEngine.Listing[] memory) {
     IEngine.Listing[] memory listings = new IEngine.Listing[](1);
 
     listings[0] = IEngine.Listing({
       asset: 0x9c2C5fd7b07E95EE044DDeba0E97a665F142394f,
       assetSymbol: '1INCH',
       priceFeed: 0x443C5116CdF663Eb387e72C688D276e702135C87,
-      rateStrategy: 0x03733F4E008d36f2e37F0080fF1c8DF756622E6F, // TODO
+      rateStrategyParams: LISTING_ENGINE.RATE_STRATEGIES_FACTORY().getCurrentRateSimpleParams(
+        AaveV3PolygonAssets.AAVE_UNDERLYING
+      ), // Quite common case, of setting the same rate strategy as an already listed asset
       enabledToBorrow: true,
-      stableRateModeEnabled: false, // TODO
+      stableRateModeEnabled: false,
       borrowableInIsolation: false,
       withSiloedBorrowing: false,
       flashloanable: false,
