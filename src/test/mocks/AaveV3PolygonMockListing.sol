@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '../../v3-config-engine/AaveV3PayloadPolygon.sol';
+import '../../v3-config-engine/AaveV3PayloadBase.sol';
+import {AaveV3Polygon, AaveV3PolygonAssets} from 'aave-address-book/AaveV3Polygon.sol';
 
 /**
  * @dev Smart contract for a mock listing, to be able to test without having a v3 instance on Ethereum
  * IMPORTANT Parameters are pseudo-random, DON'T USE THIS ANYHOW IN PRODUCTION
+ * @dev Inheriting directly from AaveV3PayloadBase for being able to inject a custom engine
  * @author BGD Labs
  */
-contract AaveV3PolygonMockListing is AaveV3PayloadPolygon {
+contract AaveV3PolygonMockListing is AaveV3PayloadBase {
+  constructor(IEngine customEngine) AaveV3PayloadBase(customEngine) {}
+
   function newListings() public view override returns (IEngine.Listing[] memory) {
     IEngine.Listing[] memory listings = new IEngine.Listing[](1);
 
@@ -36,5 +40,9 @@ contract AaveV3PolygonMockListing is AaveV3PayloadPolygon {
     });
 
     return listings;
+  }
+
+  function getPoolContext() public pure override returns (IEngine.PoolContext memory) {
+    return IEngine.PoolContext({networkName: 'Polygon', networkAbbreviation: 'Pol'});
   }
 }
