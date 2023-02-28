@@ -101,30 +101,7 @@ contract V3RateStrategyFactory is Initializable, IV3RateStrategyFactory {
   }
 
   ///@inheritdoc IV3RateStrategyFactory
-  function getCurrentRateData(address asset)
-    external
-    view
-    returns (address, RateStrategyParams memory)
-  {
-    RateStrategyParams memory params;
-
-    IDefaultInterestRateStrategy strategy = IDefaultInterestRateStrategy(
-      IPool(ADDRESSES_PROVIDER.getPool()).getReserveData(asset).interestRateStrategyAddress
-    );
-
-    if (address(strategy) != address(0)) {
-      params = getLiveStrategyData(IDefaultInterestRateStrategy(strategy));
-    }
-
-    return (address(strategy), params);
-  }
-
-  ///@inheritdoc IV3RateStrategyFactory
-  function getCurrentRateSimpleParams(address asset)
-    external
-    view
-    returns (RateStrategyParams memory)
-  {
+  function getCurrentRateData(address asset) external view returns (RateStrategyParams memory) {
     RateStrategyParams memory params;
 
     IDefaultInterestRateStrategy strategy = IDefaultInterestRateStrategy(
