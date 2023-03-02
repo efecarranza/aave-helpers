@@ -4,14 +4,16 @@ pragma solidity ^0.8.0;
 import 'forge-std/Test.sol';
 
 import {AaveV3Polygon, AaveV3PolygonAssets} from 'aave-address-book/AaveV3Polygon.sol';
+import {AaveV3Ethereum} from 'aave-address-book/AaveV3Ethereum.sol';
 import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
 import {AaveMisc} from 'aave-address-book/AaveMisc.sol';
 import {IAaveV3ConfigEngine} from '../v3-config-engine/IAaveV3ConfigEngine.sol';
 import {IV3RateStrategyFactory} from '../v3-config-engine/V3RateStrategyFactory.sol';
 import {AaveV3PolygonMockListing} from './mocks/AaveV3PolygonMockListing.sol';
+import {AaveV3PolygonRatesUpdates070322} from './mocks/gauntlet-updates/AaveV3PolygonRatesUpdates070322.sol';
 import {ITransparentProxyFactory} from 'solidity-utils/contracts/transparent-proxy/interfaces/ITransparentProxyFactory.sol';
-import {DeployRatesFactoryPolLib} from '../../script/V3RateStrategyFactory.s.sol';
-import {DeployEnginePolLib} from '../../script/AaveV3ConfigEngine.s.sol';
+import {DeployRatesFactoryPolLib, DeployRatesFactoryEthLib} from '../../script/V3RateStrategyFactory.s.sol';
+import {DeployEnginePolLib, DeployEngineEthLib} from '../../script/AaveV3ConfigEngine.s.sol';
 import '../ProtocolV3TestBase.sol';
 
 contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
@@ -101,5 +103,50 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
         variableDebtToken: engine.VTOKEN_IMPL()
       })
     );
+  }
+}
+
+contract AaveV3ConfigEngineRatesTest is ProtocolV3TestBase {
+  using stdStorage for StdStorage;
+
+  function setUp() public {
+    vm.createSelectFork(vm.rpcUrl('polygon'), 39797440);
+  }
+
+  function testEngine() public {
+    (address ratesFactory, ) = DeployRatesFactoryPolLib.deploy();
+
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy(ratesFactory));
+    AaveV3PolygonRatesUpdates070322 payload = new AaveV3PolygonRatesUpdates070322(engine);
+
+    vm.startPrank(AaveV3Polygon.ACL_ADMIN);
+    AaveV3Polygon.ACL_MANAGER.addPoolAdmin(address(payload));
+    vm.stopPrank();
+
+    createConfigurationSnapshot('preTestEngine', AaveV3Polygon.POOL);
+
+    payload.execute();
+
+    createConfigurationSnapshot('postTestEngine', AaveV3Polygon.POOL);
+
+    diffReports('preTestEngine', 'postTestEngine');
+  }
+}
+
+contract AaveV3ConfigEthV3EngineTest is ProtocolV3TestBase {
+  using stdStorage for StdStorage;
+
+  function setUp() public {
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 16727110);
+  }
+
+  function testEngine() public {
+    (address ratesFactory, address[] memory rates) = DeployRatesFactoryEthLib.deploy();
+
+    for (uint256 i = 0; i < rates.length; i++) {
+      emit log_address(rates[i]);
+    }
+
+    createConfigurationSnapshot('preTestEngine', AaveV3Ethereum.POOL);
   }
 }
