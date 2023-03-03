@@ -200,9 +200,9 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
       require(decimals > 0, 'INVALID_ASSET_DECIMALS');
 
       initReserveInputs[i] = ConfiguratorInputTypes.InitReserveInput({
-        aTokenImpl: ATOKEN_IMPL,
-        stableDebtTokenImpl: STOKEN_IMPL,
-        variableDebtTokenImpl: VTOKEN_IMPL,
+        aTokenImpl: basics[i].implementations.aToken,
+        stableDebtTokenImpl: basics[i].implementations.sToken,
+        variableDebtTokenImpl: basics[i].implementations.vToken,
         underlyingAssetDecimals: decimals,
         interestRateStrategyAddress: strategies[i],
         underlyingAsset: ids[i],
@@ -352,7 +352,8 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         if (
           collaterals[i].ltv == EngineFlags.KEEP_CURRENT ||
           collaterals[i].liqThreshold == EngineFlags.KEEP_CURRENT ||
-          collaterals[i].liqBonus == EngineFlags.KEEP_CURRENT
+          collaterals[i].liqBonus == EngineFlags.KEEP_CURRENT ||
+          collaterals[i].liqProtocolFee == EngineFlags.KEEP_CURRENT
         ) {
           DataTypes.ReserveConfigurationMap memory configuration = POOL.getConfiguration(ids[i]);
           (
@@ -373,7 +374,11 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
           }
 
           if (collaterals[i].liqBonus == EngineFlags.KEEP_CURRENT) {
-            collaterals[i].liqBonus = currentLiqBonus;
+            collaterals[i].liqBonus = currentLiqBonus - 100_00;
+          }
+
+          if (collaterals[i].liqProtocolFee == EngineFlags.KEEP_CURRENT) {
+            collaterals[i].liqProtocolFee = configuration.getLiquidationProtocolFee();
           }
         }
 
