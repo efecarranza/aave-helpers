@@ -24,21 +24,21 @@ contract AaveV3AvalancheRatesUpdates070322 is AaveV3PayloadBase {
 
     Rates.RateStrategyParams memory usdt = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3AvalancheAssets.USDt_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3AvalancheAssets.USDt_UNDERLYING);
     usdt.optimalUsageRatio = _bpsToRay(80_00);
     usdt.variableRateSlope2 = _bpsToRay(75_00);
     usdt.stableRateSlope2 = _bpsToRay(75_00);
 
     Rates.RateStrategyParams memory frax = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3AvalancheAssets.FRAX_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3AvalancheAssets.FRAX_UNDERLYING);
     frax.optimalUsageRatio = _bpsToRay(80_00);
     frax.variableRateSlope2 = _bpsToRay(75_00);
     frax.stableRateSlope2 = _bpsToRay(75_00);
 
     Rates.RateStrategyParams memory mai = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3AvalancheAssets.MAI_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3AvalancheAssets.MAI_UNDERLYING);
     mai.optimalUsageRatio = _bpsToRay(80_00);
     mai.variableRateSlope2 = _bpsToRay(75_00);
     mai.stableRateSlope2 = _bpsToRay(75_00);

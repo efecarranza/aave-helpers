@@ -24,14 +24,14 @@ contract AaveV3ArbitrumRatesUpdates070322 is AaveV3PayloadBase {
 
     Rates.RateStrategyParams memory usdt = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3ArbitrumAssets.USDT_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3ArbitrumAssets.USDT_UNDERLYING);
     usdt.optimalUsageRatio = _bpsToRay(80_00);
     usdt.variableRateSlope2 = _bpsToRay(75_00);
     usdt.stableRateSlope2 = _bpsToRay(75_00);
 
     Rates.RateStrategyParams memory eurs = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3ArbitrumAssets.EURS_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3ArbitrumAssets.EURS_UNDERLYING);
     eurs.optimalUsageRatio = _bpsToRay(80_00);
     eurs.variableRateSlope2 = _bpsToRay(75_00);
     eurs.stableRateSlope2 = _bpsToRay(75_00);

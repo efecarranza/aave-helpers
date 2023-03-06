@@ -298,7 +298,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         strategiesParams[i].optimalStableToTotalDebtRatio == EngineFlags.KEEP_CURRENT
       ) {
         IV3RateStrategyFactory.RateStrategyParams
-          memory currentStrategyData = RATE_STRATEGIES_FACTORY.getCurrentRateData(ids[i]);
+          memory currentStrategyData = RATE_STRATEGIES_FACTORY.getStrategyDataOfAsset(ids[i]);
 
         if (strategiesParams[i].variableRateSlope1 == EngineFlags.KEEP_CURRENT) {
           strategiesParams[i].variableRateSlope1 = currentStrategyData.variableRateSlope1;

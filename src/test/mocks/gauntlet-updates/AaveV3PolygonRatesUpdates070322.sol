@@ -24,28 +24,28 @@ contract AaveV3PolygonRatesUpdates070322 is AaveV3PayloadBase {
 
     Rates.RateStrategyParams memory usdt = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3PolygonAssets.USDT_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3PolygonAssets.USDT_UNDERLYING);
     usdt.optimalUsageRatio = _bpsToRay(80_00);
     usdt.variableRateSlope2 = _bpsToRay(75_00);
     usdt.stableRateSlope2 = _bpsToRay(75_00);
 
     Rates.RateStrategyParams memory eurs = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3PolygonAssets.EURS_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3PolygonAssets.EURS_UNDERLYING);
     eurs.optimalUsageRatio = _bpsToRay(80_00);
     eurs.variableRateSlope2 = _bpsToRay(75_00);
     eurs.stableRateSlope2 = _bpsToRay(75_00);
 
     Rates.RateStrategyParams memory mai = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3PolygonAssets.miMATIC_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3PolygonAssets.miMATIC_UNDERLYING);
     mai.optimalUsageRatio = _bpsToRay(80_00);
     mai.variableRateSlope2 = _bpsToRay(75_00);
     mai.stableRateSlope2 = _bpsToRay(75_00);
 
     Rates.RateStrategyParams memory ageur = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3PolygonAssets.agEUR_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3PolygonAssets.agEUR_UNDERLYING);
     ageur.optimalUsageRatio = _bpsToRay(80_00);
     ageur.variableRateSlope2 = _bpsToRay(75_00);
     ageur.stableRateSlope2 = _bpsToRay(75_00);

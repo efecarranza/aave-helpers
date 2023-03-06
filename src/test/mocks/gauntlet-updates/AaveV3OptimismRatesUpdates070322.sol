@@ -24,7 +24,7 @@ contract AaveV3OptimismRatesUpdates070322 is AaveV3PayloadBase {
 
     Rates.RateStrategyParams memory usdt = LISTING_ENGINE
       .RATE_STRATEGIES_FACTORY()
-      .getCurrentRateData(AaveV3OptimismAssets.USDT_UNDERLYING);
+      .getStrategyDataOfAsset(AaveV3OptimismAssets.USDT_UNDERLYING);
     usdt.optimalUsageRatio = _bpsToRay(80_00);
     usdt.variableRateSlope2 = _bpsToRay(75_00);
     usdt.stableRateSlope2 = _bpsToRay(75_00);
