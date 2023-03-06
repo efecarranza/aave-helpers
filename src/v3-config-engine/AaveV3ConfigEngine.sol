@@ -90,6 +90,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
     require(sTokenImpl != address(0), 'ONLY_NONZERO_STOKEN');
     require(rewardsController != address(0), 'ONLY_NONZERO_REWARDS_CONTROLLER');
     require(collector != address(0), 'ONLY_NONZERO_COLLECTOR');
+    require(address(rateStrategiesFactory) != address(0), 'ONLY_NONZERO_RATES_FACTORY');
 
     POOL = pool;
     POOL_CONFIGURATOR = configurator;
