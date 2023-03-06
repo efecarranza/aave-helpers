@@ -74,7 +74,7 @@ library DeployRatesFactoryEthLib {
       DeployRatesFactoryLib._createAndSetupRatesFactory(
         AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
         AaveMisc.TRANSPARENT_PROXY_FACTORY_ETHEREUM,
-        AaveGovernanceV2.SHORT_EXECUTOR
+        AaveMisc.PROXY_ADMIN_ETHEREUM
       );
   }
 }
@@ -85,7 +85,7 @@ library DeployRatesFactoryOptLib {
       DeployRatesFactoryLib._createAndSetupRatesFactory(
         AaveV3Optimism.POOL_ADDRESSES_PROVIDER,
         AaveMisc.TRANSPARENT_PROXY_FACTORY_OPTIMISM,
-        AaveGovernanceV2.OPTIMISM_BRIDGE_EXECUTOR
+        AaveMisc.PROXY_ADMIN_OPTIMISM
       );
   }
 }
@@ -96,7 +96,7 @@ library DeployRatesFactoryArbLib {
       DeployRatesFactoryLib._createAndSetupRatesFactory(
         AaveV3Arbitrum.POOL_ADDRESSES_PROVIDER,
         AaveMisc.TRANSPARENT_PROXY_FACTORY_ARBITRUM,
-        AaveGovernanceV2.ARBITRUM_BRIDGE_EXECUTOR
+        AaveMisc.PROXY_ADMIN_ARBITRUM
       );
   }
 }
@@ -107,7 +107,7 @@ library DeployRatesFactoryPolLib {
       DeployRatesFactoryLib._createAndSetupRatesFactory(
         AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
         AaveMisc.TRANSPARENT_PROXY_FACTORY_POLYGON,
-        AaveGovernanceV2.POLYGON_BRIDGE_EXECUTOR
+        AaveMisc.PROXY_ADMIN_POLYGON
       );
   }
 }
@@ -118,7 +118,7 @@ library DeployRatesFactoryAvaLib {
       DeployRatesFactoryLib._createAndSetupRatesFactory(
         AaveV3Avalanche.POOL_ADDRESSES_PROVIDER,
         AaveMisc.TRANSPARENT_PROXY_FACTORY_AVALANCHE,
-        0xa35b76E4935449E33C56aB24b23fcd3246f13470 // Avalanche Guardian
+        AaveMisc.PROXY_ADMIN_AVALANCHE
       );
   }
 }
