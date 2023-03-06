@@ -303,7 +303,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         );
       }
 
-      // TODO: update after v3.0.1
+      // TODO: update once all the underlying v3 instances are in 3.0.1 (supporting 100% RF)
       // The reserve factor should always be > 0
       require(
         (borrows[i].reserveFactor > 0 && 
