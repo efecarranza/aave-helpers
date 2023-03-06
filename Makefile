@@ -8,7 +8,7 @@ update:; forge update
 # Build & test
 build  :; forge build
 test   :; forge test -vvv
-test-gauntlet-strategies-update:; forge test -vvv --match-path src/test/AaveV3ConfigEngineTest.t.sol --gas-report
+test-gauntlet-strategies-update:; forge test -vvv --match-path src/test/AaveV3ConfigEngineGauntletProposal.t.sol --gas-report
 
 
 # Scripts
