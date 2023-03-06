@@ -109,7 +109,7 @@ contract V3RateStrategyFactory is Initializable, IV3RateStrategyFactory {
     );
 
     if (address(strategy) != address(0)) {
-      params = getStrategyData(IDefaultInterestRateStrategy(strategy));
+      params = getStrategyData(strategy);
     }
 
     return params;
