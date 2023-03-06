@@ -39,11 +39,11 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
   }
 
   struct Borrow {
-    bool enabledToBorrow; // Main config flag, if false, some of the other fields will not be considered
-    bool flashloanable;
-    bool stableRateModeEnabled;
-    bool borrowableInIsolation;
-    bool withSiloedBorrowing;
+    uint256 enabledToBorrow; // Main config flag, if EngineFlag.DISABLED, some of the other fields will not be considered
+    uint256 flashloanable; // EngineFlag.ENABLED for true, EngineFlag.DISABLED for false otherwise EngineFlag.KEEP_CURRENT
+    uint256 stableRateModeEnabled; // EngineFlag.ENABLED for true, EngineFlag.DISABLED for false otherwise EngineFlag.KEEP_CURRENT
+    uint256 borrowableInIsolation; // EngineFlag.ENABLED for true, EngineFlag.DISABLED for false otherwise EngineFlag.KEEP_CURRENT
+    uint256 withSiloedBorrowing; // EngineFlag.ENABLED for true, EngineFlag.DISABLED for false otherwise EngineFlag.KEEP_CURRENT
     uint256 reserveFactor; // With 2 digits precision, `10_00` for 10%. Should be positive and < 100_00
   }
 
@@ -151,12 +151,30 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
   }
 
   /// @inheritdoc IAaveV3ConfigEngine
+  function updatePriceFeeds(PriceFeedUpdate[] memory updates) public {
+    require(updates.length != 0, 'AT_LEAST_ONE_UPDATE_REQUIRED');
+
+    AssetsConfig memory configs = _repackPriceFeed(updates);
+
+    _setPriceFeeds(configs.ids, configs.basics);
+  }
+
+  /// @inheritdoc IAaveV3ConfigEngine
   function updateCollateralSide(CollateralUpdate[] memory updates) public {
     require(updates.length != 0, 'AT_LEAST_ONE_UPDATE_REQUIRED');
 
     AssetsConfig memory configs = _repackCollateralUpdate(updates);
 
     _configCollateralSide(configs.ids, configs.collaterals);
+  }
+
+  /// @inheritdoc IAaveV3ConfigEngine
+  function updateBorrowSide(BorrowUpdate[] memory updates) public {
+    require(updates.length != 0, 'AT_LEAST_ONE_UPDATE_REQUIRED');
+
+    AssetsConfig memory configs = _repackBorrowUpdate(updates);
+
+    _configBorrowSide(configs.ids, configs.borrows);
   }
 
   /// @inheritdoc IAaveV3ConfigEngine
@@ -253,30 +271,53 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
 
   function _configBorrowSide(address[] memory ids, Borrow[] memory borrows) internal {
     for (uint256 i = 0; i < ids.length; i++) {
-      if (borrows[i].enabledToBorrow) {
-        POOL_CONFIGURATOR.setReserveBorrowing(ids[i], true);
+      if (borrows[i].enabledToBorrow != EngineFlags.KEEP_CURRENT) {
+        POOL_CONFIGURATOR.setReserveBorrowing(ids[i], EngineFlags.toBool(borrows[i].enabledToBorrow));
+      } else {
+        DataTypes.ReserveConfigurationMap memory configuration = POOL.getConfiguration(ids[i]);
+        ( , , bool borrowingEnabled, , ) = configuration.getFlags();
+        borrowingEnabled ? 
+          borrows[i].enabledToBorrow = EngineFlags.ENABLED : borrows[i].enabledToBorrow = EngineFlags.DISABLED;
+      }
 
-        // If enabled to borrow, the reserve factor should always be configured and > 0
-        require(
-          borrows[i].reserveFactor > 0 && borrows[i].reserveFactor < 100_00,
-          'INVALID_RESERVE_FACTOR'
-        );
-        POOL_CONFIGURATOR.setReserveFactor(ids[i], borrows[i].reserveFactor);
-
-        if (borrows[i].stableRateModeEnabled) {
-          POOL_CONFIGURATOR.setReserveStableRateBorrowing(ids[i], true);
-        }
-
-        if (borrows[i].borrowableInIsolation) {
-          POOL_CONFIGURATOR.setBorrowableInIsolation(ids[i], true);
-        }
-
-        if (borrows[i].withSiloedBorrowing) {
-          POOL_CONFIGURATOR.setSiloedBorrowing(ids[i], true);
+      if (borrows[i].enabledToBorrow == EngineFlags.ENABLED) {
+        if (borrows[i].stableRateModeEnabled != EngineFlags.KEEP_CURRENT) {
+          POOL_CONFIGURATOR.setReserveStableRateBorrowing(
+            ids[i],
+            EngineFlags.toBool(borrows[i].stableRateModeEnabled)
+          );
         }
       }
 
-      if (borrows[i].flashloanable) {
+      if (borrows[i].borrowableInIsolation != EngineFlags.KEEP_CURRENT) {
+        POOL_CONFIGURATOR.setBorrowableInIsolation(
+          ids[i],
+          EngineFlags.toBool(borrows[i].borrowableInIsolation)
+        );
+      }
+
+      if (borrows[i].withSiloedBorrowing != EngineFlags.KEEP_CURRENT) {
+        POOL_CONFIGURATOR.setSiloedBorrowing(
+          ids[i],
+          EngineFlags.toBool(borrows[i].withSiloedBorrowing)
+        );
+      }
+
+      // TODO: update after v3.0.1
+      // The reserve factor should always be > 0
+      require(
+        (borrows[i].reserveFactor > 0 && 
+        borrows[i].reserveFactor < 100_00) ||
+        borrows[i].reserveFactor == EngineFlags.KEEP_CURRENT,
+        'INVALID_RESERVE_FACTOR'
+      );
+
+      if (borrows[i].reserveFactor != EngineFlags.KEEP_CURRENT) {
+        POOL_CONFIGURATOR.setReserveFactor(ids[i], borrows[i].reserveFactor);
+      }
+
+      // TODO: update after v3.0.1
+      if (borrows[i].flashloanable == EngineFlags.ENABLED) {
         POOL_CONFIGURATOR.setReserveFlashLoaning(ids[i], true);
       }
     }
@@ -551,6 +592,66 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         rates: new IV3RateStrategyFactory.RateStrategyParams[](0)
       });
   }
+
+  function _repackBorrowUpdate(BorrowUpdate[] memory updates)
+    internal
+    pure
+    returns (AssetsConfig memory)
+  {
+    address[] memory ids = new address[](updates.length);
+    Borrow[] memory borrows = new Borrow[](updates.length);
+
+    for (uint256 i = 0; i < updates.length; i++) {
+      ids[i] = updates[i].asset;
+      borrows[i] = Borrow({
+        enabledToBorrow: updates[i].enabledToBorrow,
+        flashloanable: updates[i].flashloanable,
+        stableRateModeEnabled: updates[i].stableRateModeEnabled,
+        borrowableInIsolation: updates[i].borrowableInIsolation,
+        withSiloedBorrowing: updates[i].withSiloedBorrowing,
+        reserveFactor: updates[i].reserveFactor
+      });
+    }
+
+    return
+      AssetsConfig({
+        ids: ids,
+        caps: new Caps[](0),
+        basics: new Basic[](0),
+        borrows: borrows,
+        collaterals: new Collateral[](0),
+        rates: new IV3RateStrategyFactory.RateStrategyParams[](0)
+      });
+  }
+
+  function _repackPriceFeed(PriceFeedUpdate[] memory updates)
+    internal
+    pure
+    returns (AssetsConfig memory)
+  {
+    address[] memory ids = new address[](updates.length);
+    Basic[] memory basics = new Basic[](updates.length);
+
+    for (uint256 i = 0; i < updates.length; i++) {
+      ids[i] = updates[i].asset;
+      basics[i] = Basic({
+        priceFeed: updates[i].priceFeed,
+        assetSymbol: string(''), // unused for price feed update
+        rateStrategyParams: IV3RateStrategyFactory.RateStrategyParams(0, 0, 0, 0, 0, 0, 0, 0, 0), // unused for price feed update
+        implementations: TokenImplementations(address(0), address(0), address(0)) // unused for price feed update
+      });
+    }
+
+    return
+      AssetsConfig({
+        ids: ids,
+        caps: new Caps[](0),
+        basics: basics,
+        borrows: new Borrow[](0),
+        collaterals: new Collateral[](0),
+        rates: new IV3RateStrategyFactory.RateStrategyParams[](0)
+      });
+  } 
 
   function safeToUint8(uint256 value) internal pure returns (uint8) {
     require(value <= type(uint8).max, 'Value doesnt fit in 8 bits');

@@ -37,11 +37,11 @@ interface IAaveV3ConfigEngine {
    *     stableRateExcessOffset: _bpsToRay(3_00),
    *     optimalStableToTotalDebtRatio: _bpsToRay(30_00)
    *   }),
-   *   enabledToBorrow: true,
-   *   flashloanable: true,
-   *   stableRateModeEnabled: false,
-   *   borrowableInIsolation: true,
-   *   withSiloedBorrowing:, false,
+   *   enabledToBorrow: EngineFlags.ENABLED,
+   *   flashloanable: EngineFlags.ENABLED,
+   *   stableRateModeEnabled: EngineFlags.DISABLED,
+   *   borrowableInIsolation: EngineFlags.ENABLED,
+   *   withSiloedBorrowing:, EngineFlags.DISABLED,
    *   ltv: 70_50, // 70.5%
    *   liqThreshold: 76_00, // 76%
    *   liqBonus: 5_00, // 5%
@@ -58,15 +58,15 @@ interface IAaveV3ConfigEngine {
     string assetSymbol;
     address priceFeed;
     IV3RateStrategyFactory.RateStrategyParams rateStrategyParams; // Mandatory, no matter if enabled for borrowing or not
-    bool enabledToBorrow;
-    bool stableRateModeEnabled; // Only considered is enabledToBorrow == true
-    bool borrowableInIsolation; // Only considered is enabledToBorrow == true
-    bool withSiloedBorrowing; // Only considered if enabledToBorrow == true
-    bool flashloanable; // Independent from enabled to borrow: an asset can be flashloanble and not enabled to borrow
+    uint256 enabledToBorrow;
+    uint256 stableRateModeEnabled; // Only considered is enabledToBorrow == EngineFlags.ENABLED (true)
+    uint256 borrowableInIsolation; // Only considered is enabledToBorrow == EngineFlags.ENABLED (true)
+    uint256 withSiloedBorrowing; // Only considered if enabledToBorrow == EngineFlags.ENABLED (true)
+    uint256 flashloanable; // Independent from enabled to borrow: an asset can be flashloanble and not enabled to borrow
     uint256 ltv; // Only considered if liqThreshold > 0
     uint256 liqThreshold; // If `0`, the asset will not be enabled as collateral
     uint256 liqBonus; // Only considered if liqThreshold > 0
-    uint256 reserveFactor; // Only considered if enabledToBorrow == true
+    uint256 reserveFactor; // Only considered if enabledToBorrow == EngineFlags.ENABLED (true)
     uint256 supplyCap; // If passing any value distinct to EngineFlags.KEEP_CURRENT, always configured
     uint256 borrowCap; // If passing any value distinct to EngineFlags.KEEP_CURRENT, always configured
     uint256 debtCeiling; // Only considered if liqThreshold > 0
@@ -101,7 +101,19 @@ interface IAaveV3ConfigEngine {
 
   /**
    * @dev Example (mock):
-   * CapsUpdate({
+   * PriceFeedUpdate({
+   *   asset: AaveV3EthereumAssets.AAVE_UNDERLYING,
+   *   priceFeed: 0x547a514d5e3769680Ce22B2361c10Ea13619e8a9
+   * })
+   */
+  struct PriceFeedUpdate {
+    address asset;
+    address priceFeed;
+  }
+
+  /**
+   * @dev Example (mock):
+   * CollateralUpdate({
    *   asset: AaveV3EthereumAssets.AAVE_UNDERLYING,
    *   ltv: 60_00,
    *   liqThreshold: 70_00,
@@ -119,6 +131,28 @@ interface IAaveV3ConfigEngine {
     uint256 debtCeiling;
     uint256 liqProtocolFee;
     uint256 eModeCategory;
+  }
+
+  /**
+   * @dev Example (mock):
+   * BorrowUpdate({
+   *   asset: AaveV3EthereumAssets.AAVE_UNDERLYING,
+   *   enabledToBorrow: EngineFlags.ENABLED,
+   *   flashloanable: EngineFlags.KEEP_CURRENT,
+   *   stableRateModeEnabled: EngineFlags.KEEP_CURRENT,
+   *   borrowableInIsolation: EngineFlags.KEEP_CURRENT,
+   *   withSiloedBorrowing: EngineFlags.KEEP_CURRENT,
+   *   reserveFactor: 15_00, // 15%
+   * })
+   */
+  struct BorrowUpdate {
+    address asset;
+    uint256 enabledToBorrow;
+    uint256 flashloanable;
+    uint256 stableRateModeEnabled;
+    uint256 borrowableInIsolation;
+    uint256 withSiloedBorrowing;
+    uint256 reserveFactor;
   }
 
   /**
@@ -144,34 +178,34 @@ interface IAaveV3ConfigEngine {
   }
 
   /**
-   * @notice Performs a full listing of an asset in the Aave pool configured in this engine instance
+   * @notice Performs full listing of the assets, in the Aave pool configured in this engine instance
    * @param context `PoolContext` struct, effectively meta-data for naming of a/v/s tokens.
    *   More information on the documentation of the struct.
-   * @param listings `Listing[]` list of declarative configs for every aspect of the asset listing.
+   * @param listings `Listing[]` list of declarative configs for every aspect of the asset listings.
    *   More information on the documentation of the struct.
    */
   function listAssets(PoolContext memory context, Listing[] memory listings) external;
 
   /**
-   * @notice Performs a full listing of an asset in the Aave pool configured in this engine instance
+   * @notice Performs full listings of assets, in the Aave pool configured in this engine instance
    * @dev This function allows more customization, especifically enables to set custom implementations
    *   for a/v/s tokens.
    *   IMPORTANT. Use it only if understanding the internals of the Aave v3 protocol
    * @param context `PoolContext` struct, effectively meta-data for naming of a/v/s tokens.
    *   More information on the documentation of the struct.
-   * @param listings `ListingWithCustomImpl[]` list of declarative configs for every aspect of the asset listing.
+   * @param listings `ListingWithCustomImpl[]` list of declarative configs for every aspect of the asset listings.
    */
   function listAssetsCustom(PoolContext memory context, ListingWithCustomImpl[] memory listings) external;
 
   /**
-   * @notice Performs an update of the caps (supply, borrow) of an asset, in the Aave pool configured in this engine instance
+   * @notice Performs an update of the caps (supply, borrow) of the assets, in the Aave pool configured in this engine instance
    * @param updates `CapsUpdate[]` list of declarative updates containing the new caps
    *   More information on the documentation of the struct.
    */
   function updateCaps(CapsUpdate[] memory updates) external;
 
   /**
-   * @notice Performs an update the rate strategy params of an asset, in the Aave pool configured in this engine instance
+   * @notice Performs an update on the rate strategy params of the assets, in the Aave pool configured in this engine instance
    * @dev The engine itself manages if a new rate strategy needs to be deployed or if an existing one can be re-used
    * @param updates `RateStrategyUpdate[]` list of declarative updates containing the new rate strategy params
    *   More information on the documentation of the struct.
@@ -179,11 +213,25 @@ interface IAaveV3ConfigEngine {
   function updateRateStrategies(RateStrategyUpdate[] memory updates) external;
 
   /**
-   * @notice Performs an update of the collateral-related params of an asset, in the Aave pool configured in this engine instance
-   * @param updates `CapsUpCollateralUpdatedate[]` list of declarative updates containing the new parameters
+   * @notice Performs an update of the collateral-related params of the assets, in the Aave pool configured in this engine instance
+   * @param updates `CollateralUpdate[]` list of declarative updates containing the new parameters
    *   More information on the documentation of the struct.
    */
   function updateCollateralSide(CollateralUpdate[] memory updates) external;
+
+  /**
+   * @notice Performs an update of the price feed of the assets, in the Aave pool configured in this engine instance
+   * @param updates `PriceFeedUpdate[]` list of declarative updates containing the new parameters
+   *   More information on the documentation of the struct.
+   */
+  function updatePriceFeeds(PriceFeedUpdate[] memory updates) external;
+
+  /**
+   * @notice Performs an update of the borrow-related params of the assets, in the Aave pool configured in this engine instance
+   * @param updates `BorrowUpdate[]` list of declarative updates containing the new parameters
+   *   More information on the documentation of the struct.
+   */
+  function updateBorrowSide(BorrowUpdate[] memory updates) external;
 
   function RATE_STRATEGIES_FACTORY() external view returns (IV3RateStrategyFactory);
 
