@@ -7,11 +7,10 @@ import {AaveV3Arbitrum, AaveV3ArbitrumAssets} from 'aave-address-book/AaveV3Arbi
 /**
  * @dev Payload for the initial rates update defined here on:
  * https://snapshot.org/#/aave.eth/proposal/0xbda28d65ca4d64005e6019948ed52d9d62c9e73e356ab1013aa2d4829f40c735
- * @author BGD Labs
+ * @author BGD Labs (risk recommendations by Gauntlet)
  */
 contract AaveV3ArbitrumRatesUpdates070322 is AaveV3PayloadBase {
   // TODO remove custom engine once available on address book
-  // TODO add RF changes once helper available on engine
   constructor(IEngine customEngine) AaveV3PayloadBase(customEngine) {}
 
   function rateStrategiesUpdates()
@@ -62,6 +61,22 @@ contract AaveV3ArbitrumRatesUpdates070322 is AaveV3PayloadBase {
     });
 
     return ratesUpdate;
+  }
+
+  function borrowsUpdates() public pure override returns (IEngine.BorrowUpdate[] memory) {
+    IEngine.BorrowUpdate[] memory borrowsUpdate = new IEngine.BorrowUpdate[](1);
+
+    borrowsUpdate[0] = IEngine.BorrowUpdate({
+      asset: AaveV3ArbitrumAssets.WETH_UNDERLYING,
+      reserveFactor: 15_00,
+      enabledToBorrow: EngineFlags.KEEP_CURRENT,
+      flashloanable: EngineFlags.KEEP_CURRENT,
+      stableRateModeEnabled: EngineFlags.KEEP_CURRENT,
+      borrowableInIsolation: EngineFlags.KEEP_CURRENT,
+      withSiloedBorrowing: EngineFlags.KEEP_CURRENT
+    });
+
+    return borrowsUpdate;
   }
 
   function getPoolContext() public pure override returns (IEngine.PoolContext memory) {
