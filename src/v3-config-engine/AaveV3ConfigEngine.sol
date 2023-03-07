@@ -316,7 +316,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         POOL_CONFIGURATOR.setReserveFactor(ids[i], borrows[i].reserveFactor);
       }
 
-      // TODO: update after v3.0.1
+      // TODO: update once all the underlying v3 instances are in 3.0.1 (supporting setReserveFlashLoaning())
       if (borrows[i].flashloanable == EngineFlags.ENABLED) {
         POOL_CONFIGURATOR.setReserveFlashLoaning(ids[i], true);
       }
@@ -416,6 +416,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
           }
 
           if (collaterals[i].liqBonus == EngineFlags.KEEP_CURRENT) {
+            // Subtracting 100_00 to be consistent with the engine as 100_00 gets added while setting the liqBonus
             collaterals[i].liqBonus = currentLiqBonus - 100_00;
           }
 
