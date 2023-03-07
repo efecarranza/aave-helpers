@@ -394,8 +394,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         if (
           collaterals[i].ltv == EngineFlags.KEEP_CURRENT ||
           collaterals[i].liqThreshold == EngineFlags.KEEP_CURRENT ||
-          collaterals[i].liqBonus == EngineFlags.KEEP_CURRENT ||
-          collaterals[i].liqProtocolFee == EngineFlags.KEEP_CURRENT
+          collaterals[i].liqBonus == EngineFlags.KEEP_CURRENT
         ) {
           DataTypes.ReserveConfigurationMap memory configuration = POOL.getConfiguration(ids[i]);
           (
@@ -419,17 +418,12 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
             // Subtracting 100_00 to be consistent with the engine as 100_00 gets added while setting the liqBonus
             collaterals[i].liqBonus = currentLiqBonus - 100_00;
           }
-
-          if (collaterals[i].liqProtocolFee == EngineFlags.KEEP_CURRENT) {
-            collaterals[i].liqProtocolFee = configuration.getLiquidationProtocolFee();
-          }
         }
 
         require(
           collaterals[i].liqThreshold + collaterals[i].liqBonus < 100_00,
           'INVALID_LIQ_PARAMS_ABOVE_100'
         );
-        require(collaterals[i].liqProtocolFee < 100_00, 'INVALID_LIQ_PROTOCOL_FEE');
 
         POOL_CONFIGURATOR.configureReserveAsCollateral(
           ids[i],
@@ -441,6 +435,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         );
 
         if (collaterals[i].liqProtocolFee != EngineFlags.KEEP_CURRENT) {
+          require(collaterals[i].liqProtocolFee < 100_00, 'INVALID_LIQ_PROTOCOL_FEE');
           POOL_CONFIGURATOR.setLiquidationProtocolFee(ids[i], collaterals[i].liqProtocolFee);
         }
 

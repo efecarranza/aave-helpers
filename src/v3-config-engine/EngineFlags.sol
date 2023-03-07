@@ -15,19 +15,11 @@ library EngineFlags {
   /// @dev converts flag ENABLED DISABLED to bool
   function toBool(uint256 flag) internal pure returns (bool) {
     require(flag == 0 || flag == 1, 'INVALID_CONVERSION_TO_BOOL');
-    if (flag == 1) {
-      return true;
-    } else {
-      return false;
-    }
+    return flag == 1;
   }
 
   /// @dev converts bool to ENABLED DISABLED flags
   function fromBool(bool isTrue) internal pure returns (uint256) {
-    if (isTrue) {
-      return ENABLED;
-    } else {
-      return DISABLED;
-    }
+    return isTrue ? ENABLED : DISABLED;
   }
 }
