@@ -27,9 +27,7 @@ contract AaveV3PolygonConfigEngineRatesTest is ProtocolV3TestBase, TestWithExecu
   }
 
   function testEngine() public {
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(
-      DeployEnginePolLib.deploy(0xcC47c4Fe1F7f29ff31A8b62197023aC8553C7896)
-    );
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy());
     AaveV3PolygonRatesUpdates070322 payload = new AaveV3PolygonRatesUpdates070322(engine);
 
     createConfigurationSnapshot('preTestEnginePolV3', AaveV3Polygon.POOL);
@@ -51,9 +49,7 @@ contract AaveV3AvalancheConfigEngineRatesTest is ProtocolV3TestBase, TestWithExe
   }
 
   function testEngine() public {
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(
-      DeployEngineAvaLib.deploy(0xDd81E6F85358292075B78fc8D5830BE8434aF8BA)
-    );
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineAvaLib.deploy());
     AaveV3AvalancheRatesUpdates070322 payload = new AaveV3AvalancheRatesUpdates070322(engine);
 
     createConfigurationSnapshot('preTestEngineAvaV3', AaveV3Avalanche.POOL);
@@ -75,9 +71,7 @@ contract AaveV3OptimismConfigEngineRatesTest is ProtocolV3TestBase, TestWithExec
   }
 
   function testEngine() public {
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(
-      DeployEngineAvaLib.deploy(0xDd81E6F85358292075B78fc8D5830BE8434aF8BA)
-    );
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineOptLib.deploy());
     AaveV3OptimismRatesUpdates070322 payload = new AaveV3OptimismRatesUpdates070322(engine);
 
     createConfigurationSnapshot('preTestEngineOptV3', AaveV3Optimism.POOL);
@@ -99,9 +93,7 @@ contract AaveV3ArbitrumConfigEngineRatesTest is ProtocolV3TestBase, TestWithExec
   }
 
   function testEngine() public {
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(
-      DeployEngineAvaLib.deploy(0xcC47c4Fe1F7f29ff31A8b62197023aC8553C7896)
-    );
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineArbLib.deploy());
     AaveV3ArbitrumRatesUpdates070322 payload = new AaveV3ArbitrumRatesUpdates070322(engine);
 
     vm.startPrank(AaveV3Arbitrum.ACL_ADMIN);

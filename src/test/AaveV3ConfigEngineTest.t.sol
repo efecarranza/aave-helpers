@@ -25,10 +25,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   using stdStorage for StdStorage;
 
   function testListings() public {
-    vm.createSelectFork(vm.rpcUrl('polygon'), 39797440);
-    (address ratesFactory, ) = DeployRatesFactoryPolLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('polygon'), 40037250);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy());
     AaveV3PolygonMockListing payload = new AaveV3PolygonMockListing(engine);
 
     vm.startPrank(AaveV3Polygon.ACL_ADMIN);
@@ -108,10 +107,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testListingsCustom() public {
-    vm.createSelectFork(vm.rpcUrl('mainnet'), 16727659);
-    (address ratesFactory, ) = DeployRatesFactoryEthLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 16775965);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineEthLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineEthLib.deploy());
     AaveV3EthereumMockCustomListing payload = new AaveV3EthereumMockCustomListing(engine);
 
     vm.startPrank(AaveV3Ethereum.ACL_ADMIN);
@@ -191,10 +189,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testCapsUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('mainnet'), 16727659);
-    (address ratesFactory, ) = DeployRatesFactoryEthLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 16775971);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineEthLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineEthLib.deploy());
     AaveV3EthereumMockCapUpdate payload = new AaveV3EthereumMockCapUpdate(engine);
 
     vm.startPrank(AaveV3Ethereum.ACL_ADMIN);
@@ -244,10 +241,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testCollateralsUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('avalanche'), 26871634);
-    (address ratesFactory, ) = DeployRatesFactoryAvaLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('avalanche'), 27094357);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineAvaLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineAvaLib.deploy());
     AaveV3AvalancheCollateralUpdate payload = new AaveV3AvalancheCollateralUpdate(engine);
 
     vm.startPrank(AaveV3Avalanche.ACL_ADMIN);
@@ -297,10 +293,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testBorrowsUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('polygon'), 39797440);
-    (address ratesFactory, ) = DeployRatesFactoryPolLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('polygon'), 40037250);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy());
     AaveV3PolygonBorrowUpdate payload = new AaveV3PolygonBorrowUpdate(engine);
 
     vm.startPrank(AaveV3Polygon.ACL_ADMIN);
@@ -350,10 +345,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testRateStrategiesUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('optimism'), 74562421);
-    (address ratesFactory, ) = DeployRatesFactoryOptLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('optimism'), 78907810);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineOptLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineOptLib.deploy());
     AaveV3OptimismMockRatesUpdate payload = new AaveV3OptimismMockRatesUpdate(engine);
 
     vm.startPrank(AaveV3Optimism.ACL_ADMIN);
@@ -372,7 +366,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
 
     diffReports('preTestEngineRates', 'postTestEngineRates');
 
-    address updatedStrategyAddress = AaveV3Optimism.AAVE_PROTOCOL_DATA_PROVIDER.getInterestRateStrategyAddress(AaveV3OptimismAssets.USDT_UNDERLYING);
+    address updatedStrategyAddress = AaveV3Optimism
+      .AAVE_PROTOCOL_DATA_PROVIDER
+      .getInterestRateStrategyAddress(AaveV3OptimismAssets.USDT_UNDERLYING);
 
     InterestStrategyValues memory expectedInterestStrategyValues = InterestStrategyValues({
       addressesProvider: address(AaveV3Optimism.POOL_ADDRESSES_PROVIDER),
@@ -394,10 +390,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testPolygonRateStrategiesUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('polygon'), 39797440);
-    (address ratesFactory, ) = DeployRatesFactoryPolLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('polygon'), 40037250);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy());
     AaveV3PolygonRatesUpdates070322 payload = new AaveV3PolygonRatesUpdates070322(engine);
 
     vm.startPrank(AaveV3Polygon.ACL_ADMIN);
@@ -414,10 +409,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testAvaxRateStrategiesUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('avalanche'), 26972500);
-    (address ratesFactory, ) = DeployRatesFactoryAvaLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('avalanche'), 27094357);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineAvaLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineAvaLib.deploy());
     AaveV3AvalancheRatesUpdates070322 payload = new AaveV3AvalancheRatesUpdates070322(engine);
 
     vm.startPrank(AaveV3Avalanche.ACL_ADMIN);
@@ -434,10 +428,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testOptimismRateStrategiesUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('optimism'), 78759890);
-    (address ratesFactory, ) = DeployRatesFactoryAvaLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('optimism'), 78907810);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineAvaLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineOptLib.deploy());
     AaveV3OptimismRatesUpdates070322 payload = new AaveV3OptimismRatesUpdates070322(engine);
 
     vm.startPrank(AaveV3Optimism.ACL_ADMIN);
@@ -454,10 +447,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testArbitrumRateStrategiesUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('arbitrum'), 67062320);
-    (address ratesFactory, ) = DeployRatesFactoryAvaLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('arbitrum'), 67332070);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineAvaLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineArbLib.deploy());
     AaveV3ArbitrumRatesUpdates070322 payload = new AaveV3ArbitrumRatesUpdates070322(engine);
 
     vm.startPrank(AaveV3Arbitrum.ACL_ADMIN);
@@ -474,10 +466,9 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   }
 
   function testPriceFeedsUpdates() public {
-    vm.createSelectFork(vm.rpcUrl('polygon'), 39797440);
-    (address ratesFactory, ) = DeployRatesFactoryPolLib.deploy();
+    vm.createSelectFork(vm.rpcUrl('polygon'), 40037250);
 
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy(ratesFactory));
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy());
     AaveV3PolygonPriceFeedUpdate payload = new AaveV3PolygonPriceFeedUpdate(engine);
 
     vm.startPrank(AaveV3Polygon.ACL_ADMIN);

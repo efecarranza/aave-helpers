@@ -6,9 +6,7 @@ import {IV3RateStrategyFactory} from '../src/v3-config-engine/IV3RateStrategyFac
 import './Utils.s.sol';
 
 library DeployEngineEthLib {
-  function deploy(address ratesFactory) internal returns (address) {
-    require(ratesFactory != address(0), 'INVALID_RATES_FACTORY');
-
+  function deploy() internal returns (address) {
     return
       address(
         new AaveV3ConfigEngine(
@@ -20,16 +18,14 @@ library DeployEngineEthLib {
           AaveV3Ethereum.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_1,
           AaveV3Ethereum.DEFAULT_INCENTIVES_CONTROLLER,
           AaveV3Ethereum.COLLECTOR,
-          IV3RateStrategyFactory(ratesFactory)
+          IV3RateStrategyFactory(AaveV3Ethereum.RATES_FACTORY)
         )
       );
   }
 }
 
 library DeployEngineOptLib {
-  function deploy(address ratesFactory) internal returns (address) {
-    require(ratesFactory != address(0), 'INVALID_RATES_FACTORY');
-
+  function deploy() internal returns (address) {
     return
       address(
         new AaveV3ConfigEngine(
@@ -41,16 +37,14 @@ library DeployEngineOptLib {
           AaveV3Optimism.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_1,
           AaveV3Optimism.DEFAULT_INCENTIVES_CONTROLLER,
           AaveV3Optimism.COLLECTOR,
-          IV3RateStrategyFactory(ratesFactory)
+          IV3RateStrategyFactory(AaveV3Optimism.RATES_FACTORY)
         )
       );
   }
 }
 
 library DeployEngineArbLib {
-  function deploy(address ratesFactory) internal returns (address) {
-    require(ratesFactory != address(0), 'INVALID_RATES_FACTORY');
-
+  function deploy() internal returns (address) {
     return
       address(
         new AaveV3ConfigEngine(
@@ -62,16 +56,14 @@ library DeployEngineArbLib {
           AaveV3Arbitrum.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_1,
           AaveV3Arbitrum.DEFAULT_INCENTIVES_CONTROLLER,
           AaveV3Arbitrum.COLLECTOR,
-          IV3RateStrategyFactory(ratesFactory)
+          IV3RateStrategyFactory(AaveV3Arbitrum.RATES_FACTORY)
         )
       );
   }
 }
 
 library DeployEnginePolLib {
-  function deploy(address ratesFactory) internal returns (address) {
-    require(ratesFactory != address(0), 'INVALID_RATES_FACTORY');
-
+  function deploy() internal returns (address) {
     return
       address(
         new AaveV3ConfigEngine(
@@ -83,16 +75,14 @@ library DeployEnginePolLib {
           AaveV3Polygon.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_1,
           AaveV3Polygon.DEFAULT_INCENTIVES_CONTROLLER,
           AaveV3Polygon.COLLECTOR,
-          IV3RateStrategyFactory(ratesFactory)
+          IV3RateStrategyFactory(AaveV3Polygon.RATES_FACTORY)
         )
       );
   }
 }
 
 library DeployEngineAvaLib {
-  function deploy(address ratesFactory) internal returns (address) {
-    require(ratesFactory != address(0), 'INVALID_RATES_FACTORY');
-
+  function deploy() internal returns (address) {
     return
       address(
         new AaveV3ConfigEngine(
@@ -104,7 +94,7 @@ library DeployEngineAvaLib {
           AaveV3Avalanche.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_1,
           AaveV3Avalanche.DEFAULT_INCENTIVES_CONTROLLER,
           AaveV3Avalanche.COLLECTOR,
-          IV3RateStrategyFactory(ratesFactory)
+          IV3RateStrategyFactory(AaveV3Avalanche.RATES_FACTORY)
         )
       );
   }
@@ -112,30 +102,30 @@ library DeployEngineAvaLib {
 
 contract DeployEngineEth is EthereumScript {
   function run() external broadcast {
-    DeployEngineEthLib.deploy(address(0)); // TODO
+    DeployEngineEthLib.deploy();
   }
 }
 
 contract DeployEngineOpt is OptimismScript {
   function run() external {
-    DeployEngineOptLib.deploy(address(0)); // TODO
+    DeployEngineOptLib.deploy();
   }
 }
 
 contract DeployEngineArb is ArbitrumScript {
   function run() external {
-    DeployEngineArbLib.deploy(address(0)); // TODO
+    DeployEngineArbLib.deploy();
   }
 }
 
 contract DeployEnginePol is PolygonScript {
   function run() external {
-    DeployEnginePolLib.deploy(address(0)); // TODO
+    DeployEnginePolLib.deploy();
   }
 }
 
 contract DeployEngineAva is AvalancheScript {
   function run() external {
-    DeployEngineAvaLib.deploy(address(0)); // TODO
+    DeployEngineAvaLib.deploy();
   }
 }
