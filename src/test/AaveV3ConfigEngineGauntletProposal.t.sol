@@ -22,12 +22,12 @@ contract AaveV3PolygonConfigEngineRatesTest is ProtocolV3TestBase, TestWithExecu
   using stdStorage for StdStorage;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('polygon'), 40037250);
+    vm.createSelectFork(vm.rpcUrl('polygon'), 40074125);
     _selectPayloadExecutor(AaveGovernanceV2.POLYGON_BRIDGE_EXECUTOR);
   }
 
   function testEngine() public {
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy());
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(0xE202F2fc4b6A37Ba53cfD15bE42a762A645FCA07);
     AaveV3PolygonRatesUpdates070322 payload = new AaveV3PolygonRatesUpdates070322(engine);
 
     createConfigurationSnapshot('preTestEnginePolV3', AaveV3Polygon.POOL);
@@ -44,12 +44,12 @@ contract AaveV3AvalancheConfigEngineRatesTest is ProtocolV3TestBase, TestWithExe
   using stdStorage for StdStorage;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('avalanche'), 27094357);
+    vm.createSelectFork(vm.rpcUrl('avalanche'), 27134232);
     _selectPayloadExecutor(0xa35b76E4935449E33C56aB24b23fcd3246f13470); // Aave Avalanche's Guardian
   }
 
   function testEngine() public {
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineAvaLib.deploy());
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(0x49581e5575F49263f556b91daf8fb41D7854D94B);
     AaveV3AvalancheRatesUpdates070322 payload = new AaveV3AvalancheRatesUpdates070322(engine);
 
     createConfigurationSnapshot('preTestEngineAvaV3', AaveV3Avalanche.POOL);
@@ -66,12 +66,12 @@ contract AaveV3OptimismConfigEngineRatesTest is ProtocolV3TestBase, TestWithExec
   using stdStorage for StdStorage;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('optimism'), 78907810);
+    vm.createSelectFork(vm.rpcUrl('optimism'), 79074228);
     _selectPayloadExecutor(AaveGovernanceV2.OPTIMISM_BRIDGE_EXECUTOR);
   }
 
   function testEngine() public {
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineOptLib.deploy());
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(0x7A9A9c14B35E58ffa1cC84aB421acE0FdcD289E3);
     AaveV3OptimismRatesUpdates070322 payload = new AaveV3OptimismRatesUpdates070322(engine);
 
     createConfigurationSnapshot('preTestEngineOptV3', AaveV3Optimism.POOL);
@@ -88,12 +88,12 @@ contract AaveV3ArbitrumConfigEngineRatesTest is ProtocolV3TestBase, TestWithExec
   using stdStorage for StdStorage;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('arbitrum'), 67332070);
+    vm.createSelectFork(vm.rpcUrl('arbitrum'), 67634819);
     _selectPayloadExecutor(AaveGovernanceV2.ARBITRUM_BRIDGE_EXECUTOR);
   }
 
   function testEngine() public {
-    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEngineArbLib.deploy());
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(0x0EfdfC1A940DE4E7E6acC9Bb801481f81B17fd20);
     AaveV3ArbitrumRatesUpdates070322 payload = new AaveV3ArbitrumRatesUpdates070322(engine);
 
     vm.startPrank(AaveV3Arbitrum.ACL_ADMIN);

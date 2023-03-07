@@ -11,7 +11,6 @@ import {AaveV3PolygonAssets} from 'aave-address-book/AaveV3Polygon.sol';
  * @author BGD Labs
  */
 contract AaveV3PolygonPriceFeedUpdate is AaveV3PayloadBase {
-  // TODO remove custom engine once available on address book
   constructor(IEngine customEngine) AaveV3PayloadBase(customEngine) {}
 
   function priceFeedsUpdates() public pure override returns (IEngine.PriceFeedUpdate[] memory) {

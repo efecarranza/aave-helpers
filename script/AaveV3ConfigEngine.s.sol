@@ -107,25 +107,25 @@ contract DeployEngineEth is EthereumScript {
 }
 
 contract DeployEngineOpt is OptimismScript {
-  function run() external {
+  function run() external broadcast {
     DeployEngineOptLib.deploy();
   }
 }
 
 contract DeployEngineArb is ArbitrumScript {
-  function run() external {
+  function run() external broadcast {
     DeployEngineArbLib.deploy();
   }
 }
 
 contract DeployEnginePol is PolygonScript {
-  function run() external {
+  function run() external broadcast {
     DeployEnginePolLib.deploy();
   }
 }
 
 contract DeployEngineAva is AvalancheScript {
-  function run() external {
+  function run() external broadcast {
     DeployEngineAvaLib.deploy();
   }
 }

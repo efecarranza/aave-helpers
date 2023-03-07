@@ -10,7 +10,6 @@ import {AaveV3Optimism, AaveV3OptimismAssets} from 'aave-address-book/AaveV3Opti
  * @author BGD Labs (risk recommendations by Gauntlet)
  */
 contract AaveV3OptimismRatesUpdates070322 is AaveV3PayloadBase {
-  // TODO remove custom engine once available on address book
   constructor(IEngine customEngine) AaveV3PayloadBase(customEngine) {}
 
   function rateStrategiesUpdates()
