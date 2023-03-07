@@ -272,12 +272,13 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
   function _configBorrowSide(address[] memory ids, Borrow[] memory borrows) internal {
     for (uint256 i = 0; i < ids.length; i++) {
       if (borrows[i].enabledToBorrow != EngineFlags.KEEP_CURRENT) {
-        POOL_CONFIGURATOR.setReserveBorrowing(ids[i], EngineFlags.toBool(borrows[i].enabledToBorrow));
+        POOL_CONFIGURATOR.setReserveBorrowing(
+          ids[i],
+          EngineFlags.toBool(borrows[i].enabledToBorrow)
+        );
       } else {
-        DataTypes.ReserveConfigurationMap memory configuration = POOL.getConfiguration(ids[i]);
-        ( , , bool borrowingEnabled, , ) = configuration.getFlags();
-        borrowingEnabled ? 
-          borrows[i].enabledToBorrow = EngineFlags.ENABLED : borrows[i].enabledToBorrow = EngineFlags.DISABLED;
+        (, , bool borrowingEnabled, , ) = POOL.getConfiguration(ids[i]).getFlags();
+        borrows[i].enabledToBorrow = EngineFlags.fromBool(borrowingEnabled);
       }
 
       if (borrows[i].enabledToBorrow == EngineFlags.ENABLED) {
@@ -306,9 +307,8 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
       // TODO: update once all the underlying v3 instances are in 3.0.1 (supporting 100% RF)
       // The reserve factor should always be > 0
       require(
-        (borrows[i].reserveFactor > 0 && 
-        borrows[i].reserveFactor < 100_00) ||
-        borrows[i].reserveFactor == EngineFlags.KEEP_CURRENT,
+        (borrows[i].reserveFactor > 0 && borrows[i].reserveFactor < 100_00) ||
+          borrows[i].reserveFactor == EngineFlags.KEEP_CURRENT,
         'INVALID_RESERVE_FACTOR'
       );
 
@@ -651,7 +651,7 @@ contract AaveV3ConfigEngine is IAaveV3ConfigEngine {
         collaterals: new Collateral[](0),
         rates: new IV3RateStrategyFactory.RateStrategyParams[](0)
       });
-  } 
+  }
 
   function safeToUint8(uint256 value) internal pure returns (uint8) {
     require(value <= type(uint8).max, 'Value doesnt fit in 8 bits');

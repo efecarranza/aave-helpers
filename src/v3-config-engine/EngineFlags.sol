@@ -21,4 +21,13 @@ library EngineFlags {
       return false;
     }
   }
+
+  /// @dev converts bool to ENABLED DISABLED flags
+  function fromBool(bool isTrue) public pure returns (uint256) {
+    if (isTrue) {
+      return ENABLED;
+    } else {
+      return DISABLED;
+    }
+  }
 }
