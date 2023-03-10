@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8.0;
+// From commit https://github.com/aave/protocol-v2/commit/92a731ec2c536734924f5a55d3e6db0385b0c824
+pragma solidity >=0.6.12;
 
 /**
  * @title Errors library

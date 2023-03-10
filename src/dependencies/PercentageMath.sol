@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8.0;
+// From commit https://github.com/aave/protocol-v2/commit/92a731ec2c536734924f5a55d3e6db0385b0c824
+pragma solidity >=0.6.12;
 
-import {Errors} from './Errors.sol';
+import {Errors} from '../dependencies/Errors.sol';
 
 /**
  * @title PercentageMath library
@@ -10,6 +11,7 @@ import {Errors} from './Errors.sol';
  * @dev Percentages are defined by default with 2 decimals of precision (100.00). The precision is indicated by PERCENTAGE_FACTOR
  * @dev Operations are rounded half up
  **/
+
 library PercentageMath {
   uint256 constant PERCENTAGE_FACTOR = 1e4; //percentage plus two decimals
   uint256 constant HALF_PERCENT = PERCENTAGE_FACTOR / 2;

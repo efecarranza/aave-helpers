@@ -66,7 +66,7 @@ contract AaveV3OptimismConfigEngineRatesTest is ProtocolV3TestBase, TestWithExec
   using stdStorage for StdStorage;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('optimism'), 79074240);
+    vm.createSelectFork(vm.rpcUrl('optimism'), 79194240);
     _selectPayloadExecutor(AaveGovernanceV2.OPTIMISM_BRIDGE_EXECUTOR);
   }
 

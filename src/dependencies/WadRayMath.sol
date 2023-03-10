@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8.0;
+// From commit https://github.com/aave/protocol-v2/commit/92a731ec2c536734924f5a55d3e6db0385b0c824
+pragma solidity >=0.6.12;
 
-import {Errors} from './Errors.sol';
+import {Errors} from '../dependencies/Errors.sol';
 
 /**
  * @title WadRayMath library
  * @author Aave
  * @dev Provides mul and div function for wads (decimal numbers with 18 digits precision) and rays (decimals with 27 digits)
  **/
+
 library WadRayMath {
   uint256 internal constant WAD = 1e18;
   uint256 internal constant halfWAD = WAD / 2;

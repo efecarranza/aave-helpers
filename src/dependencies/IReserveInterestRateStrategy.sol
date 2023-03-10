@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8.0;
+// From commit https://github.com/aave/protocol-v2/commit/7f44a0c2422cf08290a7a35b5652b5ef43d4d22f
+pragma solidity >=0.6.12;
 
 /**
  * @title IReserveInterestRateStrategyInterface interface

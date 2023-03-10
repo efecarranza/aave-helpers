@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8.0;
+// From commit https://github.com/aave/protocol-v2/commit/5f817c7c09139585c7dbc18aef07380ab8148869
+pragma solidity >=0.6.12;
 
-import {ILendingPoolAddressesProvider, ILendingRateOracle} from 'aave-address-book/AaveV2.sol';
+import {SafeMath} from '../dependencies/SafeMath.sol';
 import {IReserveInterestRateStrategy} from '../dependencies/IReserveInterestRateStrategy.sol';
 import {WadRayMath} from '../dependencies/WadRayMath.sol';
 import {PercentageMath} from '../dependencies/PercentageMath.sol';
+import {ILendingPoolAddressesProvider, ILendingRateOracle} from 'aave-address-book/AaveV2.sol';
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 
 /**
@@ -18,6 +20,7 @@ import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
  **/
 contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
   using WadRayMath for uint256;
+  using SafeMath for uint256;
   using PercentageMath for uint256;
 
   /**
@@ -61,7 +64,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
     uint256 stableRateSlope2
   ) public {
     OPTIMAL_UTILIZATION_RATE = optimalUtilizationRate;
-    EXCESS_UTILIZATION_RATE = WadRayMath.ray() - optimalUtilizationRate;
+    EXCESS_UTILIZATION_RATE = WadRayMath.ray().sub(optimalUtilizationRate);
     addressesProvider = provider;
     _baseVariableBorrowRate = baseVariableBorrowRate;
     _variableRateSlope1 = variableRateSlope1;
@@ -91,7 +94,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
   }
 
   function getMaxVariableBorrowRate() external view override returns (uint256) {
-    return _baseVariableBorrowRate + _variableRateSlope1 + _variableRateSlope2;
+    return _baseVariableBorrowRate.add(_variableRateSlope1).add(_variableRateSlope2);
   }
 
   /**
@@ -126,7 +129,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
   {
     uint256 availableLiquidity = IERC20(reserve).balanceOf(aToken);
     //avoid stack too deep
-    availableLiquidity = availableLiquidity + (liquidityAdded) - (liquidityTaken);
+    availableLiquidity = availableLiquidity.add(liquidityAdded).sub(liquidityTaken);
 
     return
       calculateInterestRates(
@@ -178,34 +181,34 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
   {
     CalcInterestRatesLocalVars memory vars;
 
-    vars.totalDebt = totalStableDebt + totalVariableDebt;
+    vars.totalDebt = totalStableDebt.add(totalVariableDebt);
     vars.currentVariableBorrowRate = 0;
     vars.currentStableBorrowRate = 0;
     vars.currentLiquidityRate = 0;
 
     vars.utilizationRate = vars.totalDebt == 0
       ? 0
-      : vars.totalDebt.rayDiv(availableLiquidity + vars.totalDebt);
+      : vars.totalDebt.rayDiv(availableLiquidity.add(vars.totalDebt));
 
     vars.currentStableBorrowRate = ILendingRateOracle(addressesProvider.getLendingRateOracle())
       .getMarketBorrowRate(reserve);
 
     if (vars.utilizationRate > OPTIMAL_UTILIZATION_RATE) {
       uint256 excessUtilizationRateRatio =
-        vars.utilizationRate - (OPTIMAL_UTILIZATION_RATE).rayDiv(EXCESS_UTILIZATION_RATE);
+        vars.utilizationRate.sub(OPTIMAL_UTILIZATION_RATE).rayDiv(EXCESS_UTILIZATION_RATE);
 
-      vars.currentStableBorrowRate = vars.currentStableBorrowRate + _stableRateSlope1 + (
+      vars.currentStableBorrowRate = vars.currentStableBorrowRate.add(_stableRateSlope1).add(
         _stableRateSlope2.rayMul(excessUtilizationRateRatio)
       );
 
-      vars.currentVariableBorrowRate = _baseVariableBorrowRate + _variableRateSlope1 + (
+      vars.currentVariableBorrowRate = _baseVariableBorrowRate.add(_variableRateSlope1).add(
         _variableRateSlope2.rayMul(excessUtilizationRateRatio)
       );
     } else {
-      vars.currentStableBorrowRate = vars.currentStableBorrowRate + (
+      vars.currentStableBorrowRate = vars.currentStableBorrowRate.add(
         _stableRateSlope1.rayMul(vars.utilizationRate.rayDiv(OPTIMAL_UTILIZATION_RATE))
       );
-      vars.currentVariableBorrowRate = _baseVariableBorrowRate + (
+      vars.currentVariableBorrowRate = _baseVariableBorrowRate.add(
         vars.utilizationRate.rayMul(_variableRateSlope1).rayDiv(OPTIMAL_UTILIZATION_RATE)
       );
     }
@@ -218,7 +221,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
       averageStableBorrowRate
     )
       .rayMul(vars.utilizationRate)
-      .percentMul(PercentageMath.PERCENTAGE_FACTOR - reserveFactor);
+      .percentMul(PercentageMath.PERCENTAGE_FACTOR.sub(reserveFactor));
 
     return (
       vars.currentLiquidityRate,
@@ -241,7 +244,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
     uint256 currentVariableBorrowRate,
     uint256 currentAverageStableBorrowRate
   ) internal pure returns (uint256) {
-    uint256 totalDebt = totalStableDebt + totalVariableDebt;
+    uint256 totalDebt = totalStableDebt.add(totalVariableDebt);
 
     if (totalDebt == 0) return 0;
 
@@ -250,7 +253,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
     uint256 weightedStableRate = totalStableDebt.wadToRay().rayMul(currentAverageStableBorrowRate);
 
     uint256 overallBorrowRate =
-      weightedVariableRate + (weightedStableRate).rayDiv(totalDebt.wadToRay());
+      weightedVariableRate.add(weightedStableRate).rayDiv(totalDebt.wadToRay());
 
     return overallBorrowRate;
   }
