@@ -32,4 +32,8 @@ contract AaveV2EthereumRatesUpdate is AaveV2RatePayloadBase {
 
     return rateStrategy;
   }
+
+  function getPoolContext() public pure override returns (PoolContext memory) {
+    return PoolContext({networkName: 'Ethereum', networkAbbreviation: 'Eth'});
+  }
 }

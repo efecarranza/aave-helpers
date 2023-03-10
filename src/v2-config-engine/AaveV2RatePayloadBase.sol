@@ -112,4 +112,6 @@ abstract contract AaveV2RatePayloadBase is IAaveV2RatePayloadBase {
     returns (RateStrategyUpdate[] memory updates)
   {}
 
+  function getPoolContext() public view virtual returns (PoolContext memory);
+
 }

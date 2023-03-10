@@ -9,6 +9,18 @@ interface IAaveV2RatePayloadBase {
 
   /**
    * @dev Example (mock):
+   * PoolContext({
+   *   networkName: 'Polygon',
+   *   networkAbbreviation: 'Pol'
+   * })
+   */
+  struct PoolContext {
+    string networkName;
+    string networkAbbreviation;
+  }
+
+  /**
+   * @dev Example (mock):
    * RateStrategyUpdate({
    *   asset: AaveV2EthereumAssets.AAVE_UNDERLYING,
    *   params: Rates.RateStrategyParams({
