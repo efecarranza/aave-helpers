@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '../../v2-rate-engine/AaveV2RatePayloadBase.sol';
+import '../../v2-config-engine/AaveV2RatePayloadBase.sol';
 import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 
 /**

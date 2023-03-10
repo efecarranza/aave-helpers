@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {AaveV2Ethereum} from 'aave-address-book/AaveAddressBook.sol';
 import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {IDefaultInterestRateStrategy} from 'aave-address-book/AaveV2.sol';
-import {V2RateStrategyFactory, IV2RateStrategyFactory} from '../v2-rate-engine/V2RateStrategyFactory.sol';
+import {V2RateStrategyFactory, IV2RateStrategyFactory} from '../v2-config-engine/V2RateStrategyFactory.sol';
 import '../ProtocolV2TestBase.sol';
 
 contract V2RateStrategyFactoryTest is ProtocolV2TestBase {

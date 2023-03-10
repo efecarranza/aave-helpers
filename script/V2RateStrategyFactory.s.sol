@@ -5,7 +5,7 @@ import {ILendingPoolAddressesProvider, IDefaultInterestRateStrategy, ILendingPoo
 import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
 import {AaveMisc} from 'aave-address-book/AaveMisc.sol';
 import {ITransparentProxyFactory} from 'solidity-utils/contracts/transparent-proxy/interfaces/ITransparentProxyFactory.sol';
-import {V2RateStrategyFactory} from '../src/v2-rate-engine/V2RateStrategyFactory.sol';
+import {V2RateStrategyFactory} from '../src/v2-config-engine/V2RateStrategyFactory.sol';
 import './Utils.s.sol';
 
 library DeployV2RatesFactoryLib {

@@ -6,7 +6,7 @@ import {DeployV2RatesFactoryEthLib} from '../../script/V2RateStrategyFactory.s.s
 import {AaveV2Ethereum} from 'aave-address-book/AaveAddressBook.sol';
 import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
-import {IV2RateStrategyFactory} from '../v2-rate-engine/IV2RateStrategyFactory.sol';
+import {IV2RateStrategyFactory} from '../v2-config-engine/IV2RateStrategyFactory.sol';
 import {TestWithExecutor} from '../GovHelpers.sol';
 import '../ProtocolV2TestBase.sol';
 
