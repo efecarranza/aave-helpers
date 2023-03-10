@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {AaveV2EthereumAMM} from 'aave-address-book/AaveV2EthereumAMM.sol';
-import {ILendingPoolConfigurator} from 'aave-address-book/AaveV2.sol';
-import './AaveV2RatePayloadBase.sol';
+import {AaveV2EthereumAMM, AaveV2EthereumAMMAssets} from 'aave-address-book/AaveV2EthereumAMM.sol';
+import './AaveV2PayloadBase.sol';
 
 /**
  * @dev Base smart contract for an Aave v2 rates update on Ethereum.
@@ -11,9 +10,9 @@ import './AaveV2RatePayloadBase.sol';
  */
 // TODO: Add rates factory address after deploying
 abstract contract AaveV2PayloadEthereumAMM is
-  AaveV2RatePayloadBase(Rates(address(0)), ILendingPoolConfigurator(AaveV2EthereumAMM.POOL_CONFIGURATOR))
+  AaveV2PayloadBase(IEngine(address(0)))
 {
-  function getPoolContext() public pure override returns (PoolContext memory) {
-    return PoolContext({networkName: 'Ethereum', networkAbbreviation: 'Eth'});
+  function getPoolContext() public pure override returns (IEngine.PoolContext memory) {
+    return IEngine.PoolContext({networkName: 'Ethereum', networkAbbreviation: 'Eth'});
   }
 }

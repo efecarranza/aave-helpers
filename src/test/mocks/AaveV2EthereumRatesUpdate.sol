@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '../../v2-config-engine/AaveV2RatePayloadBase.sol';
+import '../../v2-config-engine/AaveV2PayloadBase.sol';
 import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 
 /**
@@ -9,18 +9,15 @@ import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
  * IMPORTANT Parameters are pseudo-random, DON'T USE THIS ANYHOW IN PRODUCTION
  * @author BGD Labs
  */
-contract AaveV2EthereumRatesUpdate is AaveV2RatePayloadBase {
-  constructor(
-    Rates ratesFactory,
-    ILendingPoolConfigurator configurator
-  ) AaveV2RatePayloadBase(ratesFactory, configurator) {}
+contract AaveV2EthereumRatesUpdate is AaveV2PayloadBase {
+  constructor(IEngine customEngine) AaveV2PayloadBase(customEngine) {}
 
-  function updateRateStrategies() public pure override returns (RateStrategyUpdate[] memory) {
-    RateStrategyUpdate[] memory rateStrategy = new RateStrategyUpdate[](1);
+  function rateStrategiesUpdates() public pure override returns (IEngine.RateStrategyUpdate[] memory) {
+    IEngine.RateStrategyUpdate[] memory rateStrategy = new IEngine.RateStrategyUpdate[](1);
 
-    rateStrategy[0] = RateStrategyUpdate({
+    rateStrategy[0] = IEngine.RateStrategyUpdate({
       asset: AaveV2EthereumAssets.USDC_UNDERLYING,
-      params: Rates.RateStrategyParams({
+      params: IV2RateStrategyFactory.RateStrategyParams({
         optimalUtilizationRate: _bpsToRay(69_00),
         baseVariableBorrowRate: EngineFlags.KEEP_CURRENT,
         variableRateSlope1: _bpsToRay(42_00),
@@ -33,7 +30,7 @@ contract AaveV2EthereumRatesUpdate is AaveV2RatePayloadBase {
     return rateStrategy;
   }
 
-  function getPoolContext() public pure override returns (PoolContext memory) {
-    return PoolContext({networkName: 'Ethereum', networkAbbreviation: 'Eth'});
+  function getPoolContext() public pure override returns (IEngine.PoolContext memory) {
+    return IEngine.PoolContext({networkName: 'Ethereum', networkAbbreviation: 'Eth'});
   }
 }

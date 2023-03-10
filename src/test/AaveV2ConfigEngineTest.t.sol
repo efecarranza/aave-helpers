@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {AaveV2EthereumRatesUpdate} from './mocks/AaveV2EthereumRatesUpdate.sol';
+import {IAaveV2ConfigEngine} from '../v2-config-engine/IAaveV2ConfigEngine.sol';
+import {DeployV2EngineEthLib} from '../../script/AaveV2ConfigEngine.s.sol';
 import {DeployV2RatesFactoryEthLib} from '../../script/V2RateStrategyFactory.s.sol';
 import {AaveV2Ethereum} from 'aave-address-book/AaveAddressBook.sol';
 import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
@@ -10,17 +12,15 @@ import {IV2RateStrategyFactory} from '../v2-config-engine/IV2RateStrategyFactory
 import {TestWithExecutor} from '../GovHelpers.sol';
 import '../ProtocolV2TestBase.sol';
 
-contract AaveV2RatePayloadBaseTest is ProtocolV2TestBase, TestWithExecutor {
+contract AaveV2ConfigEngineTest is ProtocolV2TestBase, TestWithExecutor {
   using stdStorage for StdStorage;
 
   function testV2RateStrategiesUpdates() public {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 16727659);
     (address ratesFactory, ) = DeployV2RatesFactoryEthLib.deploy();
+    IAaveV2ConfigEngine engine = IAaveV2ConfigEngine(DeployV2EngineEthLib.deploy(ratesFactory));
 
-    AaveV2EthereumRatesUpdate payload = new AaveV2EthereumRatesUpdate(
-      IV2RateStrategyFactory(ratesFactory),
-      AaveV2Ethereum.POOL_CONFIGURATOR
-    );
+    AaveV2EthereumRatesUpdate payload = new AaveV2EthereumRatesUpdate(engine);
 
     address initialStrategyAddress = AaveV2Ethereum.POOL.getReserveData(AaveV2EthereumAssets.USDC_UNDERLYING).interestRateStrategyAddress;
     IDefaultInterestRateStrategy initialStrategy = IDefaultInterestRateStrategy(

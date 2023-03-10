@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {AaveV2Avalanche} from 'aave-address-book/AaveV2Avalanche.sol';
-import {ILendingPoolConfigurator} from 'aave-address-book/AaveV2.sol';
-import './AaveV2RatePayloadBase.sol';
+import {AaveV2Avalanche, AaveV2AvalancheAssets} from 'aave-address-book/AaveV2Avalanche.sol';
+import './AaveV2PayloadBase.sol';
 
 /**
  * @dev Base smart contract for an Aave v2 rates update on Avalanche.
@@ -11,9 +10,9 @@ import './AaveV2RatePayloadBase.sol';
  */
 // TODO: Add rates factory address after deploying
 abstract contract AaveV2PayloadAvalanche is
-  AaveV2RatePayloadBase(Rates(address(0)), ILendingPoolConfigurator(AaveV2Avalanche.POOL_CONFIGURATOR))
+  AaveV2PayloadBase(IEngine(address(0)))
 {
-  function getPoolContext() public pure override returns (PoolContext memory) {
-    return PoolContext({networkName: 'Avalanche', networkAbbreviation: 'Ava'});
+  function getPoolContext() public pure override returns (IEngine.PoolContext memory) {
+    return IEngine.PoolContext({networkName: 'Avalanche', networkAbbreviation: 'Ava'});
   }
 }
