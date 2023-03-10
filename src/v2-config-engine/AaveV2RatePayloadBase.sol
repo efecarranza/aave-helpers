@@ -9,6 +9,10 @@ import {IAaveV2RatePayloadBase} from './IAaveV2RatePayloadBase.sol';
 
 /**
  * @dev Base smart contract for an Aave v2 rates update
+ * - Assumes this contract has the right permissions
+ * - Unlike AaveV3PayloadBase it is not connected to a engine contact rather acts like an Engine itself
+ * - At the moment covering:
+ * - Updates of interest rate strategies.
  * @author BGD Labs
  */
 abstract contract AaveV2RatePayloadBase is IAaveV2RatePayloadBase {

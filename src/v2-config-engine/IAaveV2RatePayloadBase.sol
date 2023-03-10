@@ -6,7 +6,6 @@ import {IV2RateStrategyFactory} from './IV2RateStrategyFactory.sol';
 /// @dev Examples here assume the usage of the `AaveV2RatePayloadBase` base contracts
 /// contained in this same repository
 interface IAaveV2RatePayloadBase {
-
   /**
    * @dev Example (mock):
    * PoolContext({
