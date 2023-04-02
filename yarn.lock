@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@bgd-labs/report-engine@^0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@bgd-labs/report-engine/-/report-engine-0.0.2.tgz#a769f29af840f452ea7fa63993fe15a4f5baab26"
-  integrity sha512-+1fYs+15E4zxIHd20eTQUgN7ZgpZpBxNlC9B83hV3qa+eaUY9TTAzQDgRbG2fc3z2sF9xYCLCFzyr4WqbALq6A==
+"@bgd-labs/report-engine@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@bgd-labs/report-engine/-/report-engine-0.0.3.tgz#f4b8386beca011586bd233fe9dc4fdef1f606633"
+  integrity sha512-iuK0jxC+crSLg4OKh9Z2izHNZXvp3GsFYvWeB2aQHJ00ACxmhxFzVqd2Z1RcdpEEnZcJ0b1ecLBuqXmjfYLPzQ==
   dependencies:
     json-bigint "^1.0.0"
     yargs "^17.7.1"
