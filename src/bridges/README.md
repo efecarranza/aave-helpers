@@ -43,6 +43,8 @@ And the generated proof: https://proof-generator.polygon.technology/api/v1/matic
 
 The result is the bytes data that is later passed to `exit()`.
 
+If doing multiple burns in one transaction, each has to be processed individually via exit. To get a specific logIndex to generate the correct proof when doing multiple, you can append to the API URL `&tokenIndex=[INDEX_OF_TARGET_LOG]`.
+
 ## Deployed Addresses
 
 Mainnet:

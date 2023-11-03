@@ -85,6 +85,10 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
     emit WithdrawToCollector(token, balance);
   }
 
+  /*
+  * Returns the address of the address who can rescue funds in this contract
+  * @returns address
+  */
   function whoCanRescue() public view override returns (address) {
     return owner();
   }
