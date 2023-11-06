@@ -44,13 +44,7 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
     _transferOwnership(_owner);
   }
 
-  /*
-   * This function withdraws an ERC20 token from Polygon to Mainnet. exit() needs
-   * to be called on mainnet with the corresponding burnProof in order to complete.
-   * @notice Polygon only. Function will revert if called from other network.
-   * @param token Polygon address of ERC20 token to withdraw
-   * @param amount Amount of tokens to withdraw
-   */
+  /// @inheritdoc IAavePolEthERC20Bridge
   function bridge(address token, uint256 amount) external onlyOwner {
     if (block.chainid != ChainIds.POLYGON) revert InvalidChain();
 
@@ -58,12 +52,7 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
     emit Bridge(token, amount);
   }
 
-  /*
-   * This function completes the withdrawal process from Polygon to Mainnet.
-   * Burn proof is generated via API. Please see README.md
-   * @notice Mainnet only. Function will revert if called from other network.
-   * @param burnProof Burn proof generated via API.
-   */
+  /// @inheritdoc IAavePolEthERC20Bridge
   function exit(bytes calldata burnProof) external {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
@@ -71,11 +60,7 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
     emit Exit();
   }
 
-  /*
-   * Withdraws tokens on Mainnet contract to Aave V3 Collector.
-   * @notice Mainnet only. Function will revert if called from other network.
-   * @param token Mainnet address of token to withdraw to Collector
-   */
+  /// @inheritdoc IAavePolEthERC20Bridge
   function withdrawToCollector(address token) external {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
@@ -85,10 +70,7 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
     emit WithdrawToCollector(token, balance);
   }
 
-  /*
-  * Returns the address of the address who can rescue funds in this contract
-  * @returns address
-  */
+  /// @inheritdoc Rescuable
   function whoCanRescue() public view override returns (address) {
     return owner();
   }
