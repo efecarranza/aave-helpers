@@ -21,6 +21,14 @@ interface IAavePolEthERC20Bridge {
   function exit(bytes calldata burnProof) external;
 
   /*
+   * This function completes the withdrawal process from Polygon to Mainnet.
+   * Burn proofs are generated via API. Please see README.md
+   * @notice Mainnet only. Function will revert if called from other network.
+   * @param burnProofs Array of burn proofs generated via API.
+   */
+  function exit(bytes[] calldata burnProofs) external;
+
+  /*
    * Withdraws tokens on Mainnet contract to Aave V3 Collector.
    * @notice Mainnet only. Function will revert if called from other network.
    * @param token Mainnet address of token to withdraw to Collector

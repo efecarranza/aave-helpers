@@ -34,7 +34,7 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
 
   error InvalidChain();
 
-  event Exit();
+  event Exit(bytes proof);
   event Bridge(address token, uint256 amount);
   event WithdrawToCollector(address token, uint256 amount);
 
@@ -57,7 +57,18 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
     IRootChainManager(ROOT_CHAIN_MANAGER).exit(burnProof);
-    emit Exit();
+    emit Exit(burnProof);
+  }
+
+  /// @inheritdoc IAavePolEthERC20Bridge
+  function exit(bytes[] calldata burnProofs) external {
+    if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
+
+    uint256 proofsLength = burnProofs.length;
+    for (uint256 i = 0; i < proofsLength; ++i) {
+      IRootChainManager(ROOT_CHAIN_MANAGER).exit(burnProofs[i]);
+      emit Exit(burnProofs[i]);
+    }
   }
 
   /// @inheritdoc IAavePolEthERC20Bridge
