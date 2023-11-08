@@ -13,6 +13,8 @@ import {ChainIds} from '../ChainIds.sol';
 import {IAavePolEthERC20Bridge} from './IAavePolEthERC20Bridge.sol';
 
 interface IRootChainManager {
+  function childToRootToken(address token) external view returns (address);
+
   function exit(bytes calldata inputData) external;
 }
 
@@ -80,6 +82,13 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
 
     IERC20(token).safeTransfer(address(AaveV3Ethereum.COLLECTOR), balance);
     emit WithdrawToCollector(token, balance);
+  }
+
+  /// @inheritdoc IAavePolEthERC20Bridge
+  function isTokenMapped(address l2token) external view returns (bool) {
+    if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
+
+    return IRootChainManager(ROOT_CHAIN_MANAGER).childToRootToken(l2token) != address(0);
   }
 
   /// @inheritdoc Rescuable

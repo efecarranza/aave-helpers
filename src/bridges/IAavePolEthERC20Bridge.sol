@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 
 interface IAavePolEthERC20Bridge {
   /*
-  * Returns the address of the Mainnet contract to exit the burn from
-  */
+   * Returns the address of the Mainnet contract to exit the burn from
+   */
   function ROOT_CHAIN_MANAGER() external view returns (address);
 
   /*
@@ -39,4 +39,13 @@ interface IAavePolEthERC20Bridge {
    * @param token Mainnet address of token to withdraw to Collector
    */
   function withdrawToCollector(address token) external;
+
+  /*
+   * This function checks whether the L2 token to L1 token mapping exists.
+   * If the mapping doesn't exist, DO NOT BRIDGE from Polygon.
+   * @notice Call on Mainnet only.
+   * @param l2token Address of the token on Polygon.
+   * @returns Boolean denoting whether mapping exists or not.
+   */
+  function isTokenMapped(address l2token) external view returns (bool);
 }

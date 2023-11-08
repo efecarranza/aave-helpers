@@ -14,6 +14,11 @@ Callable on Polygon to withdraw ERC20 token. It withdraws `amount` of passed `to
 
 Callable on Mainnet to finish the withdrawal process. Callable 30-90 minutes after `bridge()` is called and proof is available via API.
 
+`function exit(bytes[] calldata burnProofs) external;`
+
+Callable on Mainnet to finish the withdrawal process. Callable 30-90 minutes after `bridge()` is called and proof is available via API.
+This function takes an array of proofs to do multiple burns in one transaction.
+
 `function withdrawToCollector(address token) external;`
 
 Callable on Mainnet. Withdraws balance of held token to the Aave Collector.
@@ -21,6 +26,12 @@ Callable on Mainnet. Withdraws balance of held token to the Aave Collector.
 `function rescueTokens(address[] calldata tokens) external;`
 
 Callable on Polygon. Withdraws tokens from bridge contract back to Aave Collector on Polygon.
+
+`function isTokenMapped(address l2token) external view returns(bool);`
+
+Callable on Mainnet. Returns whether a token mapping exists between Polygon and Mainnet.
+
+**DO NOT BRIDGE** if this function returns false, funds will be lost forever.
 
 ## Burn Proof Generation
 

@@ -164,6 +164,27 @@ contract WithdrawToCollectorTest is AavePolEthERC20BridgeTest {
   }
 }
 
+contract IsTokenMapped is AavePolEthERC20BridgeTest {
+  function test_revertsIf_invalidChain() public {
+    vm.selectFork(polygonFork);
+
+    vm.expectRevert(AavePolEthERC20Bridge.InvalidChain.selector);
+    bridgeMainnet.isTokenMapped(AaveV3PolygonAssets.USDC_UNDERLYING);
+  }
+
+  function test_successful_returnsTrue() public {
+    vm.selectFork(mainnetFork);
+
+    assertTrue(bridgeMainnet.isTokenMapped(AaveV3PolygonAssets.USDC_UNDERLYING));
+  }
+
+  function test_successful_returnsFalse() public {
+    vm.selectFork(mainnetFork);
+
+    assertFalse(bridgeMainnet.isTokenMapped(makeAddr('new-erc20-token')));
+  }
+}
+
 /*
  * No good way of testing the full flow as proof is generated via API 30-90 minutes after the
  * bridge() function is called on Polygon.
