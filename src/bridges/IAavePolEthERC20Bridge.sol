@@ -4,6 +4,11 @@ pragma solidity ^0.8.0;
 
 interface IAavePolEthERC20Bridge {
   /*
+  * Returns the address of the Mainnet contract to exit the burn from
+  */
+  function ROOT_CHAIN_MANAGER() external view returns (address);
+
+  /*
    * This function withdraws an ERC20 token from Polygon to Mainnet. exit() needs
    * to be called on mainnet with the corresponding burnProof in order to complete.
    * @notice Polygon only. Function will revert if called from other network.

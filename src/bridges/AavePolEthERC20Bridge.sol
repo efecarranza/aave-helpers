@@ -40,6 +40,7 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
 
   address public constant ROOT_CHAIN_MANAGER = 0xA0c68C638235ee32657e8f720a23ceC1bFc77C77;
 
+  /// @param _owner The owner of the contract upon deployment
   constructor(address _owner) {
     _transferOwnership(_owner);
   }
