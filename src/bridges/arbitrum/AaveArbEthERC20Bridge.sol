@@ -12,7 +12,17 @@ import {ChainIds} from '../../ChainIds.sol';
 import {IAaveArbEthERC20Bridge} from './IAaveArbEthERC20Bridge.sol';
 
 interface IL1Outbox {
-  function executeTransaction() external;
+  function executeTransaction(
+    bytes32[] calldata proof,
+    uint256 index,
+    address l2sender,
+    address to,
+    uint256 l2block,
+    uint256 l1block,
+    uint256 l2timestamp,
+    uint256 value,
+    bytes calldata data
+  ) external;
 }
 
 interface IL2Gateway {
@@ -41,13 +51,13 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
   }
 
   /// @inheritdoc IAaveArbEthERC20Bridge
-  function bridge(address token, uint256 amount) external onlyOwner {
+  function bridge(address token, address l1Token, uint256 amount) external onlyOwner {
     if (block.chainid != ChainIds.ARBITRUM) revert InvalidChain();
 
     IERC20(token).forceApprove(ARBITRUM_GATEWAY, amount);
 
     IL2Gateway(ARBITRUM_GATEWAY).outboundTransfer(
-      token,
+      l1Token,
       address(AaveV3Ethereum.COLLECTOR),
       amount,
       ''
@@ -56,10 +66,30 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
   }
 
   /// @inheritdoc IAaveArbEthERC20Bridge
-  function exit() external {
+  function exit(
+    bytes32[] calldata proof,
+    uint256 index,
+    address l2sender,
+    address to,
+    uint256 l2block,
+    uint256 l1block,
+    uint256 l2timestamp,
+    uint256 value,
+    bytes calldata data
+  ) external {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
-    IL1Outbox(MAINNET_OUTBOX).executeTransaction();
+    IL1Outbox(MAINNET_OUTBOX).executeTransaction(
+      proof,
+      index,
+      l2sender,
+      to,
+      l2block,
+      l1block,
+      l2timestamp,
+      value,
+      data
+    );
     emit Exit();
   }
 
