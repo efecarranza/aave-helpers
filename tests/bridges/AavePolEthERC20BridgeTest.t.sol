@@ -26,16 +26,16 @@ contract AavePolEthERC20BridgeTest is Test {
   uint256 mainnetFork;
   uint256 polygonFork;
 
-  address USDC_WHALE = 0xF977814e90dA44bFA03b6295A0616a897441aceC;
+  address USDC_WHALE = 0xf89d7b9c864f589bbF53a82105107622B35EaA40;
   address USDC_WHALE_MAINNET = 0xcEe284F754E854890e311e3280b767F80797180d;
 
   function setUp() public {
     bytes32 salt = keccak256(abi.encode(tx.origin, uint256(0)));
 
-    mainnetFork = vm.createSelectFork(vm.rpcUrl('mainnet'), 17921144);
+    mainnetFork = vm.createSelectFork(vm.rpcUrl('mainnet'), 18579720);
     bridgeMainnet = new AavePolEthERC20Bridge{salt: salt}(address(this));
 
-    polygonFork = vm.createSelectFork(vm.rpcUrl('polygon'), 46340897);
+    polygonFork = vm.createSelectFork(vm.rpcUrl('polygon'), 49986900);
     bridgePolygon = new AavePolEthERC20Bridge{salt: salt}(address(this));
   }
 }
@@ -95,36 +95,36 @@ contract EmergencyTokenTransfer is AavePolEthERC20BridgeTest {
   }
 
   function test_successful_governanceCaller() public {
-    address BAL_WHALE = 0x7Ba7f4773fa7890BaD57879F0a1Faa0eDffB3520;
+    address LINK_WHALE = 0x61167073E31b1DAd85a3E531211c7B8F1E5cAE72;
 
-    assertEq(IERC20(AaveV2PolygonAssets.BAL_UNDERLYING).balanceOf(address(bridgePolygon)), 0);
+    assertEq(IERC20(AaveV2PolygonAssets.LINK_UNDERLYING).balanceOf(address(bridgePolygon)), 0);
 
     uint256 balAmount = 1_000e18;
 
-    vm.startPrank(BAL_WHALE);
-    IERC20(AaveV2PolygonAssets.BAL_UNDERLYING).transfer(address(bridgePolygon), balAmount);
+    vm.startPrank(LINK_WHALE);
+    IERC20(AaveV2PolygonAssets.LINK_UNDERLYING).transfer(address(bridgePolygon), balAmount);
     vm.stopPrank();
 
     assertEq(
-      IERC20(AaveV2PolygonAssets.BAL_UNDERLYING).balanceOf(address(bridgePolygon)),
+      IERC20(AaveV2PolygonAssets.LINK_UNDERLYING).balanceOf(address(bridgePolygon)),
       balAmount
     );
 
-    uint256 initialCollectorBalBalance = IERC20(AaveV2PolygonAssets.BAL_UNDERLYING).balanceOf(
+    uint256 initialCollectorBalBalance = IERC20(AaveV2PolygonAssets.LINK_UNDERLYING).balanceOf(
       address(AaveV2Polygon.COLLECTOR)
     );
 
     bridgePolygon.emergencyTokenTransfer(
-      AaveV2PolygonAssets.BAL_UNDERLYING,
+      AaveV2PolygonAssets.LINK_UNDERLYING,
       address(AaveV2Polygon.COLLECTOR),
       balAmount
     );
 
     assertEq(
-      IERC20(AaveV2PolygonAssets.BAL_UNDERLYING).balanceOf(address(AaveV2Polygon.COLLECTOR)),
+      IERC20(AaveV2PolygonAssets.LINK_UNDERLYING).balanceOf(address(AaveV2Polygon.COLLECTOR)),
       initialCollectorBalBalance + balAmount
     );
-    assertEq(IERC20(AaveV2PolygonAssets.BAL_UNDERLYING).balanceOf(address(bridgePolygon)), 0);
+    assertEq(IERC20(AaveV2PolygonAssets.LINK_UNDERLYING).balanceOf(address(bridgePolygon)), 0);
   }
 }
 
@@ -182,6 +182,12 @@ contract IsTokenMapped is AavePolEthERC20BridgeTest {
     vm.selectFork(mainnetFork);
 
     assertFalse(bridgeMainnet.isTokenMapped(makeAddr('new-erc20-token')));
+  }
+
+  function test_successful_returnsFalseWeth() public {
+    vm.selectFork(mainnetFork);
+
+    assertFalse(bridgeMainnet.isTokenMapped(AaveV3PolygonAssets.WETH_UNDERLYING));
   }
 }
 

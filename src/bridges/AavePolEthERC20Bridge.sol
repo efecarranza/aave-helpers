@@ -88,7 +88,13 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
   function isTokenMapped(address l2token) external view returns (bool) {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
-    return IRootChainManager(ROOT_CHAIN_MANAGER).childToRootToken(l2token) != address(0);
+    address token = IRootChainManager(ROOT_CHAIN_MANAGER).childToRootToken(l2token);
+
+    if (token == address(0) || token == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+      return false;
+    }
+
+    return true;
   }
 
   /// @inheritdoc Rescuable
