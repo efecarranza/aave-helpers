@@ -22,10 +22,10 @@ Here's a list of Polygon Aave V2 and Aave V3 tokens and whether they are mapped 
 | WBTC    | yes       | [Tx](https://polygonscan.com/tx/0x6fbabbf54aec01502db6739ce1616870ce3e3b6c0626b140c0b75a8c16fdfb19) | [Tx](https://etherscan.io/tx/0x342938e2a9d4f846cde15258c7aeffade7a42b729d97ee310308eeb912a734e8) |
 | CRV     | yes       | [Tx](https://polygonscan.com/tx/0xc73b85175045e272161abe38b25eac76546eea20247d0947926d7ef4e901b567) | [Tx](https://etherscan.io/tx/0x70e4880529959951052a7f73bd91890c793ca4ba03a3b9571b75896968d3ef42) |
 | BAL     | yes       | [Tx](https://polygonscan.com/tx/0xc73b85175045e272161abe38b25eac76546eea20247d0947926d7ef4e901b567) | [Tx](https://etherscan.io/tx/0x7cd55a0cf1f6dfb16dc7913271ae3f0cd8af78ad90c3c23a82112683e16ac574) |
-| USDT    | yes       | [Tx](https://polygonscan.com/tx/0x67d7954f28d446a64aa3d4276d3329d3fc33ced155c9d82403a4d59ae248c0a7) |                                                                                                  |
+| USDT    | yes       | [Tx](https://polygonscan.com/tx/0x67d7954f28d446a64aa3d4276d3329d3fc33ced155c9d82403a4d59ae248c0a7) | [Tx](https://etherscan.io/tx/0x693c1d2055319bc969291ef29b5ca1dfdae37193d71170ce700dac9b44e0ef33) |
 | WETH    | NO        | NO                                                                                                  | NO                                                                                               |
 | WMATIC  | NO        | NO                                                                                                  | NO                                                                                               |
-| AAVE    | yes       | [Tx](https://polygonscan.com/tx/0xba939d05ab27aedd931b015af970d9b8a73fa903e705be3e3c707ef3b8c91fb2) |                                                                                                  |
+| AAVE    | yes       | [Tx](https://polygonscan.com/tx/0xba939d05ab27aedd931b015af970d9b8a73fa903e705be3e3c707ef3b8c91fb2) | [Tx](https://etherscan.io/tx/0x693c1d2055319bc969291ef29b5ca1dfdae37193d71170ce700dac9b44e0ef33) |
 | GHST    | yes       |                                                                                                     |                                                                                                  |
 | DPI     | yes       |                                                                                                     |                                                                                                  |
 | SUSHI   | yes       |                                                                                                     |                                                                                                  |
@@ -35,7 +35,7 @@ Here's a list of Polygon Aave V2 and Aave V3 tokens and whether they are mapped 
 | miMATIC | NO        | NO                                                                                                  | NO                                                                                               |
 | stMATIC | yes       |                                                                                                     |                                                                                                  |
 | MaticX  | yes       |                                                                                                     |                                                                                                  |
-| wstETH  | yes       | [Tx](https://polygonscan.com/tx/0x1237237d8d9ef85fd395867121f22895102a92bde06d3ad3363026809a472fd2) |                                                                                                  |
+| wstETH  | yes       | [Tx](https://polygonscan.com/tx/0x1237237d8d9ef85fd395867121f22895102a92bde06d3ad3363026809a472fd2) | [Tx](https://etherscan.io/tx/0x693c1d2055319bc969291ef29b5ca1dfdae37193d71170ce700dac9b44e0ef33) |
 
 `function bridge(address token, uint256 amount) external;`
 
