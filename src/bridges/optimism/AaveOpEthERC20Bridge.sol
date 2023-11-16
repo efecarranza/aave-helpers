@@ -12,5 +12,7 @@ import {ChainIds} from '../../ChainIds.sol';
 import {IAaveOpEthERC20Bridge} from './IAaveOpEthERC20Bridge.sol';
 
 contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
-
+    function whoCanRescue() public view override returns (address) {
+    return owner();
+  }
 }
