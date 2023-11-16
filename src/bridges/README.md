@@ -54,7 +54,7 @@ This function takes an array of proofs to do multiple burns in one transaction.
 
 Callable on Mainnet. Withdraws balance of held token to the Aave Collector.
 
-`function rescueTokens(address[] calldata tokens) external;`
+`function emergencyTokenTransfer(address erc20Token, address to, uint256 amount) external;`
 
 Callable on Polygon. Withdraws tokens from bridge contract back to Aave Collector on Polygon.
 
