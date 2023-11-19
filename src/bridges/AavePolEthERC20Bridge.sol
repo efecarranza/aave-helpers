@@ -37,6 +37,7 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
   error InvalidChain();
 
   event Exit(bytes proof);
+  event FailedToSendETH();
   event Bridge(address token, uint256 amount);
   event WithdrawToCollector(address token, uint256 amount);
 
@@ -88,17 +89,20 @@ contract AavePolEthERC20Bridge is Ownable, Rescuable, IAavePolEthERC20Bridge {
   function isTokenMapped(address l2token) external view returns (bool) {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
-    address token = IRootChainManager(ROOT_CHAIN_MANAGER).childToRootToken(l2token);
-
-    if (token == address(0) || token == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-      return false;
-    }
-
-    return true;
+    return IRootChainManager(ROOT_CHAIN_MANAGER).childToRootToken(l2token) != address(0);
   }
 
   /// @inheritdoc Rescuable
   function whoCanRescue() public view override returns (address) {
     return owner();
+  }
+
+  receive() external payable {
+    if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
+
+    (bool success, ) = address(AaveV3Ethereum.COLLECTOR).call{value: address(this).balance}("");
+    if (!success) {
+      emit FailedToSendETH();
+    }
   }
 }

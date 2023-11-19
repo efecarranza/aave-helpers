@@ -183,11 +183,27 @@ contract IsTokenMapped is AavePolEthERC20BridgeTest {
 
     assertFalse(bridgeMainnet.isTokenMapped(makeAddr('new-erc20-token')));
   }
+}
 
-  function test_successful_returnsFalseWeth() public {
+contract ReceiveEther is AavePolEthERC20BridgeTest {
+  function test_revertsIf_invalidChain() public {
+    vm.selectFork(polygonFork);
+
+    vm.expectRevert(AavePolEthERC20Bridge.InvalidChain.selector);
+    address(bridgePolygon).call{value: 1 ether}("");
+  }
+
+  function test_successful_forwardsETH() public {
     vm.selectFork(mainnetFork);
 
-    assertFalse(bridgeMainnet.isTokenMapped(AaveV3PolygonAssets.WETH_UNDERLYING));
+    uint256 balanceETHBefore = address(AaveV3Ethereum.COLLECTOR).balance;
+
+    assertEq(address(bridgeMainnet).balance, 0);
+
+    address(bridgeMainnet).call{value: 1 ether}("");
+
+    assertEq(balanceETHBefore + 1 ether, address(AaveV3Ethereum.COLLECTOR).balance);
+    assertEq(address(bridgeMainnet).balance, 0);
   }
 }
 
