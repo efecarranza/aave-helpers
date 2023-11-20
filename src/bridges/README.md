@@ -14,8 +14,8 @@ Callable on Mainnet. Returns whether a token mapping exists between Polygon and 
 
 Here's a list of Polygon Aave V2 and Aave V3 tokens and whether they are mapped or not, and respective transactions showing a bridge.
 
-| Token   | Is Mapped | Burn | Exit |
-| --- | --- | --- | --- | --- |
+| Token | Is Mapped | Burn | Exit |
+| --- | --- | --- | --- |
 | USDC | yes | [Tx](https://polygonscan.com/tx/0x954e823985e203318308073b0692e360ca9842ea0d29ed578eafc14b801621dc) | [Tx](https://etherscan.io/tx/0x7c54d6b96a7474300d64e2fdae042947aaa92dcc0a7af061f02f335839fdcb56) |
 | DAI | yes | [Tx](https://polygonscan.com/tx/0x1c455d8f60f73a757ef5752a8cd3ed04b00ba25026dc7d596b4ee7d8b4a099c2) | [Tx](https://etherscan.io/tx/0x7c54d6b96a7474300d64e2fdae042947aaa92dcc0a7af061f02f335839fdcb56) |
 | LINK | yes | [Tx](https://polygonscan.com/tx/0x4d5e59f05884fc4f56afcd04bc8705ae7ed12eed4eaef7852a673075011fb10b) | [Tx](https://etherscan.io/tx/0x342938e2a9d4f846cde15258c7aeffade7a42b729d97ee310308eeb912a734e8) |
