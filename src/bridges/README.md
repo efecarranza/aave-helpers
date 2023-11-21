@@ -70,20 +70,21 @@ The API endpoint used to generate the burn proof is as follows, where `TRANSACTI
 
 https://proof-generator.polygon.technology/api/v1/matic/exit-payload/<TRANSACTION_HASH>?eventSignature=<EVENT_SIGNATURE>
 
-Here's a sample transaction: https://polygonscan.com/tx/0x08365e09c94c5796ae300e706cc516714661a42c50dfff2fa1e9a01b036b21d6
+Here's a sample transaction: https://polygonscan.com/tx/0xafa75edc210566b4d9e3b0986c433f77531eae8a3fb51d4b4e27bf0b241782bb
 
 The log topic to use is the `Transfer` function to the zero address (aka. burn).
 
-https://polygonscan.com/tx/0x08365e09c94c5796ae300e706cc516714661a42c50dfff2fa1e9a01b036b21d6#eventlog
+https://polygonscan.com/tx/0xafa75edc210566b4d9e3b0986c433f77531eae8a3fb51d4b4e27bf0b241782bb#eventlog
 
-TRANSACTION_HASH: 0x08365e09c94c5796ae300e706cc516714661a42c50dfff2fa1e9a01b036b21d6
+TRANSACTION_HASH: 0xafa75edc210566b4d9e3b0986c433f77531eae8a3fb51d4b4e27bf0b241782bb
 EVENT_SIGNATURE: 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
 
-And the generated proof: https://proof-generator.polygon.technology/api/v1/matic/exit-payload/0x08365e09c94c5796ae300e706cc516714661a42c50dfff2fa1e9a01b036b21d6?eventSignature=0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
+And the generated proof: https://proof-generator.polygon.technology/api/v1/matic/exit-payload/0xafa75edc210566b4d9e3b0986c433f77531eae8a3fb51d4b4e27bf0b241782bb?eventSignature=0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
 
 The result is the bytes data that is later passed to `exit()`.
 
-If doing multiple burns in one transaction, each has to be processed individually via exit. To get a specific logIndex to generate the correct proof when doing multiple, you can append to the API URL `&tokenIndex=[INDEX_OF_TARGET_LOG]`.
+If doing multiple burns in one transaction, each proof has to be generated individually. To get a specific logIndex to generate the correct proof when doing multiple, you can append to the API URL `&tokenIndex=[INDEX_OF_TARGET_LOG]`. The Index of the target log is the # of the `Transfer()` function, with a 0 based index. A sample transaction with multiple burns can be seen [here.](https://polygonscan.com/tx/0xc73b85175045e272161abe38b25eac76546eea20247d0947926d7ef4e901b567#eventlog)
+An array of proofs can be passed to the `exit(bytes[] memory proofs)` function to do all withdrawals in a single transaction instead of the regular `exit(bytes memory proof)` method, on the Mainnet contract.
 
 ## Deployed Addresses
 
