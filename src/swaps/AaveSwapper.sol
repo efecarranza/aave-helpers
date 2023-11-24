@@ -41,8 +41,8 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
   address public constant BAL80WETH20 = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
 
   function initialize() external initializer {
-    _transferOwnership(0x3765A685a401622C060E5D700D9ad89413363a91);
-    _updateGuardian(0x2cc1ADE245020FC5AAE66Ad443e1F66e01c54Df1);
+    _transferOwnership(AaveGovernanceV2.SHORT_EXECUTOR);
+    _updateGuardian(0xA519a7cE7B24333055781133B13532AEabfAC81b);
   }
 
   function swap(

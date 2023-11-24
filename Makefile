@@ -65,7 +65,6 @@ deploy-config-engine-v2-ava :; forge script scripts/AaveV2ConfigEngine.s.sol:Dep
 # Swap live-tests
 test-swap :; forge script src/swaps/scripts/TestSwap.s.sol:TestSwap --mnemonics random --rpc-url mainnet --broadcast --ledger --mnemonic-indexes ${MNEMONIC_INDEX} --sender ${LEDGER_SENDER} --verify -vvvv
 cancel-swap :; forge script src/swaps/scripts/TestSwap.s.sol:TestSwap --mnemonics random --rpc-url mainnet --broadcast --ledger --mnemonic-indexes ${MNEMONIC_INDEX} --sender ${LEDGER_SENDER} --verify -vvvv
-deploy-swapper :; forge script scripts/AaveSwapperDeployment.s.sol:DeplyAaveSwapper --rpc-url mainnet --broadcast --private-key ${PRIVATE_KEY} --verify -vvvv --slow
 
 # Utilities
 download :; cast etherscan-source --chain ${chain} -d src/etherscan/${chain}_${address} ${address}
