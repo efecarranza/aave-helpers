@@ -56,7 +56,7 @@ contract BridgeTest is AaveArbEthERC20BridgeTest {
     bridgeArbitrum.transferOwnership(GovernanceV3Arbitrum.EXECUTOR_LVL_1);
 
     vm.expectRevert('Ownable: caller is not the owner');
-    bridgeArbitrum.bridge(AaveV3ArbitrumAssets.USDC_UNDERLYING, AaveV3ArbitrumAssets.USDC_UNDERLYING, amount);
+    bridgeArbitrum.bridge(AaveV3ArbitrumAssets.USDC_UNDERLYING, AaveV3EthereumAssets.USDC_UNDERLYING, amount);
   }
 
   function test_successful() public {
@@ -73,7 +73,7 @@ contract BridgeTest is AaveArbEthERC20BridgeTest {
     vm.startPrank(GovernanceV3Arbitrum.EXECUTOR_LVL_1);
     vm.expectEmit();
     emit Bridge(AaveV3ArbitrumAssets.USDC_UNDERLYING, amount);
-    bridgeArbitrum.bridge(AaveV3ArbitrumAssets.USDC_UNDERLYING, AaveV3ArbitrumAssets.USDC_UNDERLYING, amount);
+    bridgeArbitrum.bridge(AaveV3ArbitrumAssets.USDC_UNDERLYING, AaveV3EthereumAssets.USDC_UNDERLYING, amount);
     vm.stopPrank();
   }
 }

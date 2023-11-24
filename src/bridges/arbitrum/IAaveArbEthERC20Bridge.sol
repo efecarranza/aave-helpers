@@ -4,11 +4,6 @@ pragma solidity 0.8.19;
 
 interface IAaveArbEthERC20Bridge {
   /*
-   * Returns the address of the Arbitrum contract to bridge tokens from
-   */
-  function ARBITRUM_GATEWAY() external view returns (address);
-
-  /*
    * Returns the address of the Mainnet contract to exit the bridge from
    */
   function MAINNET_OUTBOX() external view returns (address);

@@ -34,15 +34,22 @@ interface IL2Gateway {
   ) external;
 }
 
+interface IArbERC20 {
+  function l2Gateway() external view returns (address);
+}
+
 contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
   using SafeERC20 for IERC20;
 
+  /// @notice This function is not supported on this chain
   error InvalidChain();
 
+  /// @notice Emitted when bridging a token from Arbitrum to Mainnet
   event Bridge(address token, uint256 amount);
+
+  /// @notice Emitted when finalizing the transfer on Mainnet
   event Exit();
 
-  address public constant ARBITRUM_GATEWAY = 0x5288c571Fd7aD117beA99bF60FE0846C4E84F933;
   address public constant MAINNET_OUTBOX = 0x0B9857ae2D4A3DBe74ffE1d7DF045bb7F96E4840;
 
   /// @param _owner The owner of the contract upon deployment
@@ -54,9 +61,11 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
   function bridge(address token, address l1Token, uint256 amount) external onlyOwner {
     if (block.chainid != ChainIds.ARBITRUM) revert InvalidChain();
 
-    IERC20(token).forceApprove(ARBITRUM_GATEWAY, amount);
+    address gateway = IArbERC20(token).l2Gateway();
 
-    IL2Gateway(ARBITRUM_GATEWAY).outboundTransfer(
+    IERC20(token).forceApprove(gateway, amount);
+
+    IL2Gateway(gateway).outboundTransfer(
       l1Token,
       address(AaveV3Ethereum.COLLECTOR),
       amount,
