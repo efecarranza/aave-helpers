@@ -14,15 +14,24 @@ interface IAaveArbEthERC20Bridge {
    * @notice Arbitrum only. Function will revert if called from other network.
    * @param token Arbitrum address of ERC20 token to withdraw.
    * @param l1token Mainnet address of ERC20 token to withdraw.
+   * @param gateway The L2 gateway address to bridge through
    * @param amount Amount of tokens to withdraw
    */
-  function bridge(address token, address l1token, uint256 amount) external;
+  function bridge(address token, address l1token, address gateway, uint256 amount) external;
 
   /*
    * This function completes the withdrawal process from Arbitrum to Mainnet.
    * Burn proof is generated via API. Please see README.md
    * @notice Mainnet only. Function will revert if called from other network.
-   * @param burnProof Burn proof generated via API.
+   * @param burnProof[] Burn proof generated via API.
+   * @param index The index of the burn transaction.
+   * @param l2sender The address sending the transaction from the L2
+   * @param to The address receiving the bridged funds
+   * @param l2block The block number of the transaction on the L2
+   * @param l1block The block number of the transaction on the L1
+   * @param l2timestamp The timestamp of the transaction on the L2
+   * @param value The value being bridged from the L2
+   * @param data Data being sent from the L2
    */
   function exit(
     bytes32[] calldata proof,

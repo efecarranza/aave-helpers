@@ -34,10 +34,6 @@ interface IL2Gateway {
   ) external;
 }
 
-interface IArbERC20 {
-  function l2Gateway() external view returns (address);
-}
-
 contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
   using SafeERC20 for IERC20;
 
@@ -58,19 +54,18 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
   }
 
   /// @inheritdoc IAaveArbEthERC20Bridge
-  function bridge(address token, address l1Token, uint256 amount) external onlyOwner {
+  function bridge(
+    address token,
+    address l1Token,
+    address gateway,
+    uint256 amount
+  ) external onlyOwner {
     if (block.chainid != ChainIds.ARBITRUM) revert InvalidChain();
-
-    address gateway = IArbERC20(token).l2Gateway();
 
     IERC20(token).forceApprove(gateway, amount);
 
-    IL2Gateway(gateway).outboundTransfer(
-      l1Token,
-      address(AaveV3Ethereum.COLLECTOR),
-      amount,
-      ''
-    );
+    IL2Gateway(gateway).outboundTransfer(l1Token, address(AaveV3Ethereum.COLLECTOR), amount, '');
+
     emit Bridge(token, amount);
   }
 
@@ -99,6 +94,7 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
       value,
       data
     );
+
     emit Exit();
   }
 

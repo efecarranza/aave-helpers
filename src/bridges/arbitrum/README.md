@@ -1,4 +1,4 @@
-# Aave Polygon -> Mainnet ERC20 Bridge
+# Aave Arbitrum -> Mainnet ERC20 Bridge
 
 Currently, there is no built-in function to be able to bridge tokens held in contracts from Polygon to Ethereum mainnet. The reason is because the `ERC20::withdraw()` mechanism available on the PoS bridge, goes from the calling address to the same address on the other chain. There is no way to choose an address on withdraw for some tokens. The Polygon team is working on this with their FxPortal, but not all tokens exist and for USDC, this is the only way to bridge from Polygon to Mainnet.
 
