@@ -21,6 +21,14 @@ import {IMilkman} from './interfaces/IMilkman.sol';
 contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
   using SafeERC20 for IERC20;
 
+  event LimitSwapRequested(
+    address milkman,
+    address indexed fromToken,
+    address indexed toToken,
+    uint256 amount,
+    address indexed recipient,
+    uint256 minAmountOut
+  );
   event SwapCanceled(address indexed fromToken, address indexed toToken, uint256 amount);
   event SwapRequested(
     address milkman,
@@ -56,22 +64,9 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     uint256 amount,
     uint256 slippage
   ) external onlyOwner {
-    if (fromToken == address(0) || toToken == address(0)) revert Invalid0xAddress();
-    if (recipient == address(0)) revert InvalidRecipient();
-    if (amount == 0) revert InvalidAmount();
-
-    IERC20(fromToken).forceApprove(milkman, amount);
-
     bytes memory data = _getPriceCheckerAndData(toToken, fromOracle, toOracle, slippage);
 
-    IMilkman(milkman).requestSwapExactTokensForTokens(
-      amount,
-      IERC20(fromToken),
-      IERC20(toToken),
-      recipient,
-      priceChecker,
-      data
-    );
+    _swap(milkman, priceChecker, fromToken, toToken, recipient, amount, data);
 
     emit SwapRequested(
       milkman,
@@ -83,6 +78,20 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
       recipient,
       slippage
     );
+  }
+
+  function limitSwap(
+    address milkman,
+    address priceChecker,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 amount,
+    uint256 amountOut
+  ) external onlyOwner {
+    _swap(milkman, priceChecker, fromToken, toToken, recipient, amount, abi.encode(amountOut));
+
+    emit LimitSwapRequested(milkman, fromToken, toToken, amount, recipient, amountOut);
   }
 
   function cancelSwap(
@@ -98,21 +107,27 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
   ) external onlyOwnerOrGuardian {
     bytes memory data = _getPriceCheckerAndData(toToken, fromOracle, toOracle, slippage);
 
-    IMilkman(tradeMilkman).cancelSwap(
-      amount,
-      IERC20(fromToken),
-      IERC20(toToken),
-      recipient,
+    _cancelSwap(tradeMilkman, priceChecker, fromToken, toToken, recipient, amount, data);
+  }
+
+  function cancelLimitSwap(
+    address tradeMilkman,
+    address priceChecker,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 amount,
+    uint256 amountOut
+  ) external onlyOwnerOrGuardian {
+    _cancelSwap(
+      tradeMilkman,
       priceChecker,
-      data
+      fromToken,
+      toToken,
+      recipient,
+      amount,
+      abi.encode(amountOut)
     );
-
-    IERC20(fromToken).safeTransfer(
-      address(AaveV3Ethereum.COLLECTOR),
-      IERC20(fromToken).balanceOf(address(this))
-    );
-
-    emit SwapCanceled(fromToken, toToken, amount);
   }
 
   function getExpectedOut(
@@ -138,6 +153,57 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
 
   function whoCanRescue() public view override returns (address) {
     return owner();
+  }
+
+  function _swap(
+    address milkman,
+    address priceChecker,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 amount,
+    bytes memory priceCheckerData
+  ) internal {
+    if (fromToken == address(0) || toToken == address(0)) revert Invalid0xAddress();
+    if (recipient == address(0)) revert InvalidRecipient();
+    if (amount == 0) revert InvalidAmount();
+
+    IERC20(fromToken).forceApprove(milkman, amount);
+
+    IMilkman(milkman).requestSwapExactTokensForTokens(
+      amount,
+      IERC20(fromToken),
+      IERC20(toToken),
+      recipient,
+      priceChecker,
+      priceCheckerData
+    );
+  }
+
+  function _cancelSwap(
+    address tradeMilkman,
+    address priceChecker,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 amount,
+    bytes memory priceCheckerData
+  ) internal {
+    IMilkman(tradeMilkman).cancelSwap(
+      amount,
+      IERC20(fromToken),
+      IERC20(toToken),
+      recipient,
+      priceChecker,
+      priceCheckerData
+    );
+
+    IERC20(fromToken).safeTransfer(
+      address(AaveV3Ethereum.COLLECTOR),
+      IERC20(fromToken).balanceOf(address(this))
+    );
+
+    emit SwapCanceled(fromToken, toToken, amount);
   }
 
   function _getPriceCheckerAndData(

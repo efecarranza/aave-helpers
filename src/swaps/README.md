@@ -128,9 +128,10 @@ Deposits funds held on AaveCurator into Aave V2/Aave V3 on behalf of the Collect
 
 ### Deployed Address
 
-Please check out https://github.com/charlesndalton/milkman for updates on addresses.
+Please check out https://github.com/charlesndalton/milkman for updates on addresses under the DEPLOYMENTS.md section.
 
 Milkman: [`0x11C76AD590ABDFFCD980afEC9ad951B160F02797`](https://etherscan.io/address/0x11C76AD590ABDFFCD980afEC9ad951B160F02797)
 Chainlink Price Checker: [`0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c`](https://etherscan.io/address/0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c)
 B80BAL20WETH Price Checker: [`0xBeA6AAC5bDCe0206A9f909d80a467C93A7D6Da7c`](https://etherscan.io/address/0xBeA6AAC5bDCe0206A9f909d80a467C93A7D6Da7c)
-Mainnet: [`0x`]()
+Limit Order Price Checker: [`0xcfb9Bc9d2FA5D3Dd831304A0AE53C76ed5c64802`](https://etherscan.io/address/0xcfb9Bc9d2FA5D3Dd831304A0AE53C76ed5c64802)
+Mainnet: [`0x3ea64b1C0194524b48F9118462C8E9cd61a243c7`](https://etherscan.io/address/0x3ea64b1C0194524b48F9118462C8E9cd61a243c7)
