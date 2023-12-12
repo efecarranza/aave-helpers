@@ -124,10 +124,10 @@ contract AaveSwapperSwap is AaveSwapperTest {
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
-      AaveV2EthereumAssets.WETH_UNDERLYING,
-      AaveV2EthereumAssets.AAVE_UNDERLYING,
-      AaveV2EthereumAssets.WETH_ORACLE,
-      AaveV2EthereumAssets.AAVE_ORACLE,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      AaveV3EthereumAssets.AAVE_UNDERLYING,
+      AaveV3EthereumAssets.WETH_ORACLE,
+      AaveV3EthereumAssets.AAVE_ORACLE,
       address(AaveV2Ethereum.COLLECTOR),
       0,
       200
@@ -142,9 +142,9 @@ contract AaveSwapperSwap is AaveSwapperTest {
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
       address(0),
-      AaveV2EthereumAssets.AAVE_UNDERLYING,
-      AaveV2EthereumAssets.WETH_ORACLE,
-      AaveV2EthereumAssets.AAVE_ORACLE,
+      AaveV3EthereumAssets.AAVE_UNDERLYING,
+      AaveV3EthereumAssets.WETH_ORACLE,
+      AaveV3EthereumAssets.AAVE_ORACLE,
       address(AaveV2Ethereum.COLLECTOR),
       1_000e18,
       200
@@ -158,10 +158,10 @@ contract AaveSwapperSwap is AaveSwapperTest {
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
-      AaveV2EthereumAssets.WETH_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
       address(0),
-      AaveV2EthereumAssets.WETH_ORACLE,
-      AaveV2EthereumAssets.AAVE_ORACLE,
+      AaveV3EthereumAssets.WETH_ORACLE,
+      AaveV3EthereumAssets.AAVE_ORACLE,
       address(AaveV2Ethereum.COLLECTOR),
       1_000e18,
       200
@@ -178,6 +178,57 @@ contract AaveSwapperSwap is AaveSwapperTest {
       AaveV2EthereumAssets.AAVE_UNDERLYING,
       AaveV2EthereumAssets.USDC_UNDERLYING,
       AaveV2EthereumAssets.AAVE_ORACLE,
+      AaveV2EthereumAssets.USDC_ORACLE,
+      address(0),
+      1_000e18,
+      200
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_fromOracleNotSet() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
+    swaps.swap(
+      MILKMAN,
+      CHAINLINK_PRICE_CHECKER,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      address(0),
+      AaveV2EthereumAssets.USDC_ORACLE,
+      address(AaveV3Ethereum.COLLECTOR),
+      1_000e18,
+      200
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_toOracleNotSet() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
+    swaps.swap(
+      MILKMAN,
+      CHAINLINK_PRICE_CHECKER,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      AaveV2EthereumAssets.AAVE_ORACLE,
+      address(0),
+      address(AaveV3Ethereum.COLLECTOR),
+      1_000e18,
+      200
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_passedOracleIsAaveV2WETHOracle() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
+    swaps.swap(
+      MILKMAN,
+      CHAINLINK_PRICE_CHECKER,
+      AaveV2EthereumAssets.WETH_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      AaveV2EthereumAssets.WETH_ORACLE,
       AaveV2EthereumAssets.USDC_ORACLE,
       address(0),
       1_000e18,
