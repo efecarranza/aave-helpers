@@ -14,6 +14,14 @@ contract AaveSwapperTest is Test {
   event DepositedIntoV2(address indexed token, uint256 amount);
   event DepositedIntoV3(address indexed token, uint256 amount);
   event GuardianUpdated(address oldGuardian, address newGuardian);
+  event LimitSwapRequested(
+    address milkman,
+    address indexed fromToken,
+    address indexed toToken,
+    uint256 amount,
+    address indexed recipient,
+    uint256 minAmountOut
+  );
   event SwapCanceled(address indexed fromToken, address indexed toToken, uint256 amount);
   event SwapRequested(
     address milkman,
@@ -30,11 +38,12 @@ contract AaveSwapperTest is Test {
   address public constant BAL80WETH20 = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
   address public constant BPT_PRICE_CHECKER = 0xBeA6AAC5bDCe0206A9f909d80a467C93A7D6Da7c;
   address public constant CHAINLINK_PRICE_CHECKER = 0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c;
+  address public constant LIMIT_ORDER_PRICE_CHECKER = 0xcfb9Bc9d2FA5D3Dd831304A0AE53C76ed5c64802;
   address public constant MILKMAN = 0x11C76AD590ABDFFCD980afEC9ad951B160F02797;
 
   AaveSwapper public swaps;
 
-  function setUp() public {
+  function setUp() public virtual {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 17779177);
 
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
@@ -514,5 +523,114 @@ contract GetExpectedOut is AaveSwapperTest {
     // July 25, 2023 10:15AM EST BAL/USD is around $4.50 B-80BAL-20WETH $12.50
     // Thus, BAL/BPT should be around 0.35 at 100 units traded, 35 units expected.
     assertEq(expected / 1e18, 35); // WETH and BAL are 18 decimals
+  }
+}
+
+contract LimitSwap is AaveSwapperTest {
+  function setUp() public override {
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 18815161);
+
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    swaps = new AaveSwapper();
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_invalidCaller() public {
+    uint256 amount = 1_000e18;
+    vm.expectRevert('Ownable: caller is not the owner');
+    swaps.limitSwap(
+      MILKMAN,
+      LIMIT_ORDER_PRICE_CHECKER,
+      AaveV2EthereumAssets.WETH_UNDERLYING,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      amount,
+      1_000e18
+    );
+  }
+
+  function test_revertsIf_amountIsZero() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert(AaveSwapper.InvalidAmount.selector);
+    swaps.limitSwap(
+      MILKMAN,
+      LIMIT_ORDER_PRICE_CHECKER,
+      AaveV2EthereumAssets.WETH_UNDERLYING,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      0,
+      1_000e18
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_fromTokenIsZeroAddress() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert(AaveSwapper.Invalid0xAddress.selector);
+    swaps.limitSwap(
+      MILKMAN,
+      LIMIT_ORDER_PRICE_CHECKER,
+      address(0),
+      AaveV3EthereumAssets.AAVE_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      1_000e18,
+      1_000e18
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_toTokenIsZeroAddress() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert(AaveSwapper.Invalid0xAddress.selector);
+    swaps.limitSwap(
+      MILKMAN,
+      LIMIT_ORDER_PRICE_CHECKER,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(0),
+      address(AaveV2Ethereum.COLLECTOR),
+      1_000e18,
+      1_000e18
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_invalidRecipient() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert(AaveSwapper.InvalidRecipient.selector);
+    swaps.limitSwap(
+      MILKMAN,
+      LIMIT_ORDER_PRICE_CHECKER,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      address(0),
+      1_000e18,
+      1_000e18
+    );
+    vm.stopPrank();
+  }
+
+  function test_successful() public {
+    deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+
+    vm.expectEmit(true, true, true, true);
+    emit LimitSwapRequested(
+      MILKMAN,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      1_000e18,
+      address(AaveV2Ethereum.COLLECTOR),
+      1_000e18
+    );
+    swaps.limitSwap(
+      MILKMAN,
+      LIMIT_ORDER_PRICE_CHECKER,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      1_000e18,
+      1_000e18
+    );
+    vm.stopPrank();
   }
 }
