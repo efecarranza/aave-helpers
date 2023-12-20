@@ -8,6 +8,7 @@ import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethe
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 
+import {IAggregatorV3Interface} from '../../src/swaps/interfaces/IAggregatorV3Interface.sol';
 import {AaveSwapper} from '../../src/swaps/AaveSwapper.sol';
 
 contract AaveSwapperTest is Test {
@@ -40,6 +41,7 @@ contract AaveSwapperTest is Test {
   address public constant CHAINLINK_PRICE_CHECKER = 0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c;
   address public constant LIMIT_ORDER_PRICE_CHECKER = 0xcfb9Bc9d2FA5D3Dd831304A0AE53C76ed5c64802;
   address public constant MILKMAN = 0x11C76AD590ABDFFCD980afEC9ad951B160F02797;
+  address public constant BAD_ORACLE = 0x05225Cd708bCa9253789C1374e4337a019e99D56;
 
   AaveSwapper public swaps;
 
@@ -222,6 +224,62 @@ contract AaveSwapperSwap is AaveSwapperTest {
       AaveV2EthereumAssets.USDC_UNDERLYING,
       AaveV2EthereumAssets.AAVE_ORACLE,
       address(0),
+      address(AaveV3Ethereum.COLLECTOR),
+      1_000e18,
+      200
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_fromOracleIsInvalidNoDecimalsFunction() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert();
+    swaps.swap(
+      MILKMAN,
+      CHAINLINK_PRICE_CHECKER,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      BAD_ORACLE,
+      AaveV2EthereumAssets.USDC_ORACLE,
+      address(AaveV3Ethereum.COLLECTOR),
+      1_000e18,
+      200
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_toOracleIsInvalidNoDecimalsFunction() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert();
+    swaps.swap(
+      MILKMAN,
+      CHAINLINK_PRICE_CHECKER,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      AaveV2EthereumAssets.AAVE_ORACLE,
+      BAD_ORACLE,
+      address(AaveV3Ethereum.COLLECTOR),
+      1_000e18,
+      200
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_fromOracleIsInvalid() public {
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert(AaveSwapper.InvalidOracle.selector);
+    vm.mockCall(
+      BAD_ORACLE,
+      abi.encodeWithSelector(IAggregatorV3Interface.decimals.selector),
+      abi.encode(uint8(0))
+    );
+    swaps.swap(
+      MILKMAN,
+      CHAINLINK_PRICE_CHECKER,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      BAD_ORACLE,
+      AaveV2EthereumAssets.USDC_ORACLE,
       address(AaveV3Ethereum.COLLECTOR),
       1_000e18,
       200

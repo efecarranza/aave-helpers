@@ -12,6 +12,7 @@ import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
 
 import {IPriceChecker} from './interfaces/IExpectedOutCalculator.sol';
 import {IMilkman} from './interfaces/IMilkman.sol';
+import {IAggregatorV3Interface} from './interfaces/IAggregatorV3Interface.sol';
 
 /**
  * @title AaveSwapper
@@ -43,6 +44,7 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
 
   error Invalid0xAddress();
   error InvalidAmount();
+  error InvalidOracle();
   error InvalidRecipient();
   error OracleNotSet();
 
@@ -211,7 +213,7 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     address fromOracle,
     address toOracle,
     uint256 slippage
-  ) internal pure returns (bytes memory) {
+  ) internal view returns (bytes memory) {
     if (toToken == BAL80WETH20) {
       return abi.encode(slippage, '');
     } else {
@@ -222,8 +224,10 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
   function _getChainlinkCheckerData(
     address fromOracle,
     address toOracle
-  ) internal pure returns (bytes memory) {
+  ) internal view returns (bytes memory) {
     if (fromOracle == address(0) || toOracle == address(0)) revert OracleNotSet();
+    if (!(IAggregatorV3Interface(fromOracle).decimals() > 0)) revert InvalidOracle();
+    if (!(IAggregatorV3Interface(toOracle).decimals() > 0)) revert InvalidOracle();
 
     address[] memory paths = new address[](2);
     paths[0] = fromOracle;
