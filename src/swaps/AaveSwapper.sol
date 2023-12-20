@@ -14,11 +14,9 @@ import {IPriceChecker} from './interfaces/IExpectedOutCalculator.sol';
 import {IMilkman} from './interfaces/IMilkman.sol';
 import {IAggregatorV3Interface} from './interfaces/IAggregatorV3Interface.sol';
 
-/**
- * @title AaveSwapper
- * @author Llama
- * @notice Helper contract to swap assets using milkman
- */
+/// @title AaveSwapper
+/// @author Llama
+/// @notice Helper contract to swap assets using milkman
 contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
   using SafeERC20 for IERC20;
 
@@ -42,19 +40,40 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     uint256 slippage
   );
 
+  /// @notice Provided address is zero address
   error Invalid0xAddress();
+
+  /// @notice Amount needs to be greater than zero
   error InvalidAmount();
+
+  /// @notice Oracle does not have a valid decimals() function
   error InvalidOracle();
+
+  /// @notice Recipient cannot be the zero address
   error InvalidRecipient();
+
+  /// @notice Oracle cannot be the zero address
   error OracleNotSet();
 
   address public constant BAL80WETH20 = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
 
+  /// @notice Initializes the contract.
+  /// Reverts if already initialized
   function initialize() external initializer {
     _transferOwnership(AaveGovernanceV2.SHORT_EXECUTOR);
     _updateGuardian(0xA519a7cE7B24333055781133B13532AEabfAC81b);
   }
 
+  /// @notice Function to swap one token for another within a specified slippage
+  /// @param milkman Address of the Milkman contract to submit the order
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param fromOracle Address of the oracle to check fromToken price
+  /// @param toOracle Address of the oracle to check toToken price
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param slippage The allowed slippage compared to the oracle price (in BPS)
   function swap(
     address milkman,
     address priceChecker,
@@ -82,6 +101,15 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     );
   }
 
+  /// @notice Function to swap one token for another with a limit price
+  /// @param milkman Address of the Milkman contract to submit the order
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param amountOut The limit price of the toToken (minimium amount to receive)
+  /// @dev For amountOut, use the token's atoms for decimals (ie: 6 for USDC, 18 for DAI)
   function limitSwap(
     address milkman,
     address priceChecker,
@@ -96,6 +124,16 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     emit LimitSwapRequested(milkman, fromToken, toToken, amount, recipient, amountOut);
   }
 
+  /// @notice Function to cancel an existing swap
+  /// @param tradeMilkman Address of the Milkman contract created upon order submission
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param fromOracle Address of the oracle to check fromToken price
+  /// @param toOracle Address of the oracle to check toToken price
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param slippage The allowed slippage compared to the oracle price (in BPS)
   function cancelSwap(
     address tradeMilkman,
     address priceChecker,
@@ -112,6 +150,14 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     _cancelSwap(tradeMilkman, priceChecker, fromToken, toToken, recipient, amount, data);
   }
 
+  /// @notice Function to cancel an existing limit swap
+  /// @param tradeMilkman Address of the Milkman contract created upon order submission
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param amountOut The limit price of the toToken (minimium amount to receive)
   function cancelLimitSwap(
     address tradeMilkman,
     address priceChecker,
@@ -132,6 +178,13 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     );
   }
 
+  /// @notice Helper function to see how much one could expect return in a swap
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param amount The amount of fromToken to swap
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param fromOracle Address of the oracle to check fromToken price
+  /// @param toOracle Address of the oracle to check toToken price
   function getExpectedOut(
     address priceChecker,
     uint256 amount,
@@ -153,10 +206,19 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
       );
   }
 
+  /// @inheritdoc Rescuable
   function whoCanRescue() public view override returns (address) {
     return owner();
   }
 
+  /// @notice Internal function that handles swaps
+  /// @param milkman Address of the Milkman contract to submit the order
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param priceCheckerData abi-encoded data for price checker
   function _swap(
     address milkman,
     address priceChecker,
@@ -182,6 +244,14 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     );
   }
 
+  /// @notice Internal function that handles swap cancellations
+  /// @param tradeMilkman Address of the Milkman contract to submit the order
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param priceCheckerData abi-encoded data for price checker
   function _cancelSwap(
     address tradeMilkman,
     address priceChecker,
@@ -208,6 +278,11 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     emit SwapCanceled(fromToken, toToken, amount);
   }
 
+  /// @notice Helper function to abi-encode data for price checker
+  /// @param toToken Address of the token to swap to
+  /// @param fromOracle Address of the oracle to check fromToken price
+  /// @param toOracle Address of the oracle to check toToken price
+  /// @param slippage The allowed slippage compared to the oracle price (in BPS)
   function _getPriceCheckerAndData(
     address toToken,
     address fromOracle,
@@ -221,6 +296,9 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     }
   }
 
+  /// @notice Helper function to abi-encode Chainlink oracle data
+  /// @param fromOracle Address of the oracle to check fromToken price
+  /// @param toOracle Address of the oracle to check toToken price
   function _getChainlinkCheckerData(
     address fromOracle,
     address toOracle

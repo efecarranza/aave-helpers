@@ -11,6 +11,10 @@ import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {IAggregatorV3Interface} from '../../src/swaps/interfaces/IAggregatorV3Interface.sol';
 import {AaveSwapper} from '../../src/swaps/AaveSwapper.sol';
 
+contract MockOracle {
+  fallback() external {} // Nothing Happens
+}
+
 contract AaveSwapperTest is Test {
   event DepositedIntoV2(address indexed token, uint256 amount);
   event DepositedIntoV3(address indexed token, uint256 amount);
@@ -279,6 +283,25 @@ contract AaveSwapperSwap is AaveSwapperTest {
       AaveV2EthereumAssets.AAVE_UNDERLYING,
       AaveV2EthereumAssets.USDC_UNDERLYING,
       BAD_ORACLE,
+      AaveV2EthereumAssets.USDC_ORACLE,
+      address(AaveV3Ethereum.COLLECTOR),
+      1_000e18,
+      200
+    );
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_fromOracleIsInvalidWithFallbackFunction() public {
+    address badOracle = address(new MockOracle());
+
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.expectRevert();
+    swaps.swap(
+      MILKMAN,
+      CHAINLINK_PRICE_CHECKER,
+      AaveV2EthereumAssets.AAVE_UNDERLYING,
+      AaveV2EthereumAssets.USDC_UNDERLYING,
+      badOracle,
       AaveV2EthereumAssets.USDC_ORACLE,
       address(AaveV3Ethereum.COLLECTOR),
       1_000e18,
