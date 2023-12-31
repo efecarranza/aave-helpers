@@ -10,8 +10,8 @@ import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 import {GovernanceV3Ethereum} from 'aave-address-book/GovernanceV3Ethereum.sol';
 import {GovernanceV3Polygon} from 'aave-address-book/GovernanceV3Polygon.sol';
 
-import {AavePolEthERC20Bridge} from '../../src/bridges/AavePolEthERC20Bridge.sol';
-import {IAavePolEthERC20Bridge} from '../../src/bridges/IAavePolEthERC20Bridge.sol';
+import {AavePolEthERC20Bridge} from 'src/bridges/polygon/AavePolEthERC20Bridge.sol';
+import {IAavePolEthERC20Bridge} from 'src/bridges/polygon/IAavePolEthERC20Bridge.sol';
 
 /**
  * @dev Tests for AavePolEthERC20Bridge
@@ -287,10 +287,11 @@ contract ForkedBridgeTests is Test {
       MiscEthereum.AAVE_POL_ETH_BRIDGE
     );
 
-    IAavePolEthERC20Bridge(MiscEthereum.AAVE_POL_ETH_BRIDGE).exit(burnProof);
+
+    IAavePolEthERC20Bridge(0xc928002904Ec475663A83063D492EA2aE09EbDA1).exit(burnProof); // Old bridge address for this TX
 
     assertGt(
-      IERC20(AaveV3EthereumAssets.DAI_UNDERLYING).balanceOf(MiscEthereum.AAVE_POL_ETH_BRIDGE),
+      IERC20(AaveV3EthereumAssets.DAI_UNDERLYING).balanceOf(0xc928002904Ec475663A83063D492EA2aE09EbDA1),
       balanceDaiBefore
     );
   }
