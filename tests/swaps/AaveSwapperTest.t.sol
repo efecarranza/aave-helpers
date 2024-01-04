@@ -4,12 +4,17 @@ pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
 import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
+import {GovernanceV3Ethereum} from 'aave-address-book/GovernanceV3Ethereum.sol';
 import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 
 import {IAggregatorV3Interface} from '../../src/swaps/interfaces/IAggregatorV3Interface.sol';
 import {AaveSwapper} from '../../src/swaps/AaveSwapper.sol';
+
+interface IComposableCoW {
+  function singleOrders(address user, bytes32 hash) external returns (bool);
+}
 
 contract MockOracle {
   fallback() external {} // Nothing Happens
@@ -38,7 +43,14 @@ contract AaveSwapperTest is Test {
     address indexed recipient,
     uint256 slippage
   );
-  event TokenUpdated(address indexed token, bool allowed);
+  event TWAPSwapCanceled(address indexed fromToken, address indexed toToken, uint256 amount);
+  event TWAPSwapRequested(
+    address handler,
+    address indexed fromToken,
+    address indexed toToken,
+    address recipient,
+    uint256 totalAmount
+  );
 
   address public constant BAL80WETH20 = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
   address public constant BPT_PRICE_CHECKER = 0xBeA6AAC5bDCe0206A9f909d80a467C93A7D6Da7c;
@@ -47,13 +59,17 @@ contract AaveSwapperTest is Test {
   address public constant MILKMAN = 0x11C76AD590ABDFFCD980afEC9ad951B160F02797;
   address public constant BAD_ORACLE = 0x05225Cd708bCa9253789C1374e4337a019e99D56;
 
+  address public constant COMPOSABLE_COW = 0xfdaFc9d1902f4e0b84f65F49f244b32b31013b74;
+  address public constant TWAP_HANDLER = 0x6cF1e9cA41f7611dEf408122793c358a3d11E5a5;
+  address public constant COW_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
+
   AaveSwapper public swaps;
 
   function setUp() public virtual {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 17779177);
 
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    swaps = new AaveSwapper();
+    swaps = new AaveSwapper(COMPOSABLE_COW);
     vm.stopPrank();
   }
 }
@@ -612,7 +628,7 @@ contract LimitSwap is AaveSwapperTest {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 18815161);
 
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    swaps = new AaveSwapper();
+    swaps = new AaveSwapper(COMPOSABLE_COW);
     vm.stopPrank();
   }
 
@@ -721,7 +737,7 @@ contract CancelLimitSwap is AaveSwapperTest {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 18815161);
 
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    swaps = new AaveSwapper();
+    swaps = new AaveSwapper(COMPOSABLE_COW);
     vm.stopPrank();
   }
 
@@ -803,6 +819,229 @@ contract CancelLimitSwap is AaveSwapperTest {
       1_000e18,
       1_000e18
     );
+    vm.stopPrank();
+  }
+}
+
+contract TWAPSwap is AaveSwapperTest {
+  function setUp() public override {
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 18928427);
+
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    swaps = new AaveSwapper(COMPOSABLE_COW);
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_invalidCaller() public {
+    uint256 amount = 1_000e18;
+    vm.expectRevert('Ownable: caller is not the owner');
+    swaps.twapSwap(
+      TWAP_HANDLER,
+      COW_RELAYER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      amount,
+      0.001 ether,
+      block.timestamp,
+      5,
+      1 days,
+      0
+    );
+  }
+
+  function test_revertsIf_fromTokenAddressIsZeroAddress() public {
+    vm.expectRevert(AaveSwapper.Invalid0xAddress.selector);
+    vm.prank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    swaps.twapSwap(
+      TWAP_HANDLER,
+      COW_RELAYER,
+      address(0),
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      1_000e18,
+      0.001 ether,
+      block.timestamp,
+      5,
+      1 days,
+      0
+    );
+  }
+
+  function test_revertsIf_toTokenAddressIsZeroAddress() public {
+    vm.expectRevert(AaveSwapper.Invalid0xAddress.selector);
+    vm.prank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    swaps.twapSwap(
+      TWAP_HANDLER,
+      COW_RELAYER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      address(0),
+      address(AaveV2Ethereum.COLLECTOR),
+      1_000e18,
+      0.001 ether,
+      block.timestamp,
+      5,
+      1 days,
+      0
+    );
+  }
+
+  function test_revertsIf_recipientIsAddressZero() public {
+    vm.expectRevert(AaveSwapper.InvalidRecipient.selector);
+    vm.prank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    swaps.twapSwap(
+      TWAP_HANDLER,
+      COW_RELAYER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(0),
+      1_000e18,
+      0.001 ether,
+      block.timestamp,
+      5,
+      1 days,
+      0
+    );
+  }
+
+  function test_revertsIf_amountIsZero() public {
+    vm.expectRevert(AaveSwapper.InvalidAmount.selector);
+    vm.prank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    swaps.twapSwap(
+      TWAP_HANDLER,
+      COW_RELAYER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV3Ethereum.COLLECTOR),
+      0,
+      0.001 ether,
+      block.timestamp,
+      5,
+      1 days,
+      0
+    );
+  }
+
+  function test_revertsIf_numberOfPartsIsZero() public {
+    vm.expectRevert(AaveSwapper.InvalidAmount.selector);
+    vm.prank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    swaps.twapSwap(
+      TWAP_HANDLER,
+      COW_RELAYER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV3Ethereum.COLLECTOR),
+      1_000e18,
+      0.001 ether,
+      block.timestamp,
+      0,
+      1 days,
+      0
+    );
+  }
+
+  function test_successful() public {
+    uint256 amount = 1_000e6;
+    uint256 numParts = 5;
+    deal(AaveV3EthereumAssets.USDC_UNDERLYING, address(swaps), 100_000e6);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectEmit(true, true, true, true, address(swaps));
+    emit TWAPSwapRequested(
+      TWAP_HANDLER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      amount * numParts
+    );
+    swaps.twapSwap(
+      TWAP_HANDLER,
+      COW_RELAYER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      amount,
+      0.001 ether,
+      block.timestamp,
+      numParts,
+      1 days,
+      0
+    );
+    vm.stopPrank();
+  }
+}
+
+contract CancelTWAPSwap is AaveSwapperTest {
+  function setUp() public override {
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 18928427);
+
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    swaps = new AaveSwapper(COMPOSABLE_COW);
+    vm.stopPrank();
+  }
+
+  function test_revertsIf_invalidCaller() public {
+    vm.expectRevert('ONLY_BY_OWNER_OR_GUARDIAN');
+    swaps.cancelTwapSwap(
+      TWAP_HANDLER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      1_000e18,
+      0.001 ether,
+      block.timestamp,
+      5,
+      1 days,
+      0
+    );
+  }
+
+  function test_successful() public {
+    uint256 amount = 1_000e6;
+    uint256 numParts = 5;
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+
+    swaps.twapSwap(
+      TWAP_HANDLER,
+      COW_RELAYER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      amount,
+      0.001 ether,
+      block.timestamp,
+      numParts,
+      1 days,
+      0
+    );
+
+    // Creating this order yields the following order hash:
+    // 0xb4a52ecc4f17d0df0e10d5dfb8604b3bc238ae7ad2c74019b730b23b82a31539
+    bool orderExists = IComposableCoW(COMPOSABLE_COW).singleOrders(address(swaps), 0xb4a52ecc4f17d0df0e10d5dfb8604b3bc238ae7ad2c74019b730b23b82a31539);
+
+    assertTrue(orderExists, "Order does not exist");
+
+    vm.expectEmit(true, true, true, true, address(swaps));
+    emit TWAPSwapCanceled(
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      amount * numParts
+    );
+
+    swaps.cancelTwapSwap(
+      TWAP_HANDLER,
+      AaveV3EthereumAssets.USDC_UNDERLYING,
+      AaveV3EthereumAssets.WETH_UNDERLYING,
+      address(AaveV2Ethereum.COLLECTOR),
+      amount,
+      0.001 ether,
+      block.timestamp,
+      numParts,
+      1 days,
+      0
+    );
+
+    orderExists = IComposableCoW(COMPOSABLE_COW).singleOrders(address(swaps), 0xb4a52ecc4f17d0df0e10d5dfb8604b3bc238ae7ad2c74019b730b23b82a31539);
+    assertFalse(orderExists, "Order exists after removing");
     vm.stopPrank();
   }
 }

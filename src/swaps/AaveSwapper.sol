@@ -9,15 +9,31 @@ import {OwnableWithGuardian} from 'solidity-utils/contracts/access-control/Ownab
 import {Initializable} from 'solidity-utils/contracts/transparent-proxy/Initializable.sol';
 import {AaveV3Ethereum} from 'aave-address-book/AaveV3Ethereum.sol';
 import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
+import {ComposableCoW} from 'composable-cow/ComposableCoW.sol';
+import {ERC1271Forwarder} from 'composable-cow/ERC1271Forwarder.sol';
+import {IConditionalOrder} from 'composable-cow/interfaces/IConditionalOrder.sol';
 
 import {IPriceChecker} from './interfaces/IExpectedOutCalculator.sol';
 import {IMilkman} from './interfaces/IMilkman.sol';
 import {IAggregatorV3Interface} from './interfaces/IAggregatorV3Interface.sol';
 
+struct TWAPData {
+  IERC20 sellToken;
+  IERC20 buyToken;
+  address receiver;
+  uint256 partSellAmount; // amount of sellToken to sell in each part
+  uint256 minPartLimit; // max price to pay for a unit of buyToken denominated in sellToken
+  uint256 t0;
+  uint256 n;
+  uint256 t;
+  uint256 span;
+  bytes32 appData;
+}
+
 /// @title AaveSwapper
-/// @author Llama
+/// @author efecarranza.eth
 /// @notice Helper contract to swap assets using milkman
-contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
+contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable, ERC1271Forwarder {
   using SafeERC20 for IERC20;
 
   event LimitSwapRequested(
@@ -39,6 +55,14 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     address indexed recipient,
     uint256 slippage
   );
+  event TWAPSwapCanceled(address indexed fromToken, address indexed toToken, uint256 amount);
+  event TWAPSwapRequested(
+    address handler,
+    address indexed fromToken,
+    address indexed toToken,
+    address recipient,
+    uint256 totalAmount
+  );
 
   /// @notice Provided address is zero address
   error Invalid0xAddress();
@@ -56,6 +80,8 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
   error OracleNotSet();
 
   address public constant BAL80WETH20 = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
+
+  constructor(address _composableCoW) ERC1271Forwarder(ComposableCoW(_composableCoW)) {}
 
   /// @notice Initializes the contract.
   /// Reverts if already initialized
@@ -124,6 +150,47 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
     emit LimitSwapRequested(milkman, fromToken, toToken, amount, recipient, amountOut);
   }
 
+  function twapSwap(
+    address handler,
+    address relayer,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 sellAmount,
+    uint256 minPartLimit,
+    uint256 startTime,
+    uint256 numParts,
+    uint256 partDuration,
+    uint256 span
+  ) external onlyOwner {
+    if (fromToken == address(0) || toToken == address(0)) revert Invalid0xAddress();
+    if (recipient == address(0)) revert InvalidRecipient();
+    if (sellAmount == 0 || numParts == 0) revert InvalidAmount();
+
+    TWAPData memory twapData = TWAPData(
+      IERC20(fromToken),
+      IERC20(toToken),
+      recipient,
+      sellAmount,
+      minPartLimit,
+      startTime,
+      numParts,
+      partDuration,
+      span,
+      ''
+    );
+    IConditionalOrder.ConditionalOrderParams memory params = IConditionalOrder
+      .ConditionalOrderParams(
+        IConditionalOrder(handler),
+        'AaveSwapper-TWAP-Swap',
+        abi.encode(twapData)
+      );
+    composableCoW.create(params, true);
+
+    IERC20(fromToken).forceApprove(relayer, sellAmount * numParts);
+    emit TWAPSwapRequested(handler, fromToken, toToken, recipient, sellAmount * numParts);
+  }
+
   /// @notice Function to cancel an existing swap
   /// @param tradeMilkman Address of the Milkman contract created upon order submission
   /// @param priceChecker Address of the price checker to validate order
@@ -176,6 +243,41 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable {
       amount,
       abi.encode(amountOut)
     );
+  }
+
+  function cancelTwapSwap(
+    address handler,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 sellAmount,
+    uint256 minPartLimit,
+    uint256 startTime,
+    uint256 numParts,
+    uint256 partDuration,
+    uint256 span
+  ) external onlyOwnerOrGuardian {
+    TWAPData memory twapData = TWAPData(
+      IERC20(fromToken),
+      IERC20(toToken),
+      recipient,
+      sellAmount,
+      minPartLimit,
+      startTime,
+      numParts,
+      partDuration,
+      span,
+      ''
+    );
+    IConditionalOrder.ConditionalOrderParams memory params = IConditionalOrder
+      .ConditionalOrderParams(
+        IConditionalOrder(handler),
+        'AaveSwapper-TWAP-Swap',
+        abi.encode(twapData)
+      );
+    bytes32 hashedOrder = composableCoW.hash(params);
+    composableCoW.remove(hashedOrder);
+    emit TWAPSwapCanceled(fromToken, toToken, sellAmount * numParts);
   }
 
   /// @notice Helper function to see how much one could expect return in a swap
