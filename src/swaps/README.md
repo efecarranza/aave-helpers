@@ -93,6 +93,42 @@ Swap fees/gas costs need to be taken into account, especially for smaller orders
 Limit orders are best suited for stable-to-stable swaps, especially bigger orders as the gas costs are going to be a tiny franction and swaps are likely to occurr rather easily.
 
 ```
+ function twapSwap(
+    address handler,
+    address relayer,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 sellAmount,
+    uint256 minPartLimit,
+    uint256 startTime,
+    uint256 numParts,
+    uint256 partDuration,
+    uint256 span
+  ) external onlyOwner {
+```
+
+TWAP (or time-weighted average price) orders are used when wanting to average a certain price for a swap. For example, let's say the DAO wants to acquire TokenX but the DAO wants to do periodical purchases in order to get an average price and not worry about fluctuations. With TWAP orders, the DAO could for example purchase a certain amount of TokenX every Monday, every hour, or every first of the month.
+
+The `handler` is the address of the COW Swap contract that can take TWAP orders, the address can be found [here](https://github.com/cowprotocol/composable-cow?tab=readme-ov-file#deployed-contracts) under TWAP. The `relayer` address is the COW Swap contract that handles moving of tokens, more can be read [here](https://docs.cow.fi/cow-protocol/reference/contracts/core/vault-relayer).
+
+`fromToken` is the token the user wants to sell, and `toToken` is the token that is to be acquired. `recipient` is the address that will receive the tokens, which is likely to be the Aave V3 Ethereum Collector.
+
+For the TWAP specific orders, the parameters and their explanation are as follows:
+
+`sellAmount` is the amount of tokens of `fromToken` to be sold each time. For example, let's say the DAO wants to sell 100,000 units of DAI every week for one month, then `sellAmount` would be 25,000, as there will be 4 swaps total.
+
+`minPartLimit` is the minimum amount the DAO is willing to accept per order. For example, following the above example, and with WETH trading at 2,000, which would yield 50 WETH (or 12.5 per each of the four orders), the minimum the DAO is willing to take is 12 (or 10, or anything).
+
+`startTime` is when the orders can first take effect, in unix epoch seconds. For example, the DAO wants the orders to take place on Mondays, and the proposal is to be executed on a Sunday, one can specify the `startTime` as block.timestamp + 1 day to ensure it's on Monday.
+
+`numParts` is the number of swaps to take place. In the example referenced above, this would be 4, to do a weekly swap for a month.
+
+`partDuration` is how long to wait until the next order. Again, using the example above, this would be the uint256 representation of 1 week. If the DAO wanted daily buys, this would be 1 day in uint256.
+
+`span` is to allow some extra customization on time of day, or days of the week the swaps will take place. Using the daily purchases example, the day has 86400 seconds, if the DAO only wanted to swap during the first half of the day, `span` would be set to 43200. The value 0 means the order can take place anytime during the interval (anytime during the day, week, month, etc).
+
+```
 function cancelSwap(
     address tradeMilkman,
     address priceChecker,
@@ -127,6 +163,23 @@ This methods cancels a pending limit trade. Trades should take just a couple of 
 should think that something might be off.
 
 For limit orders, keep in mind the price might be at the the limit price, but having to account for the cost of the swap might need the price to move a bit further. This should not matter for big swaps but it could be a thing in smaller swaps (especially around test swaps for validation).
+
+```
+function cancelTwapSwap(
+    address handler,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 sellAmount,
+    uint256 minPartLimit,
+    uint256 startTime,
+    uint256 numParts,
+    uint256 partDuration,
+    uint256 span
+  ) external onlyOwnerOrGuardian
+```
+
+This method cancels a pending TWAP swap. Portions that have already happened will not be reimbursed, but any subsequent ones will be cancelled.
 
 ```
 

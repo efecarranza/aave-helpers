@@ -150,6 +150,18 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable, ERC1271Fo
     emit LimitSwapRequested(milkman, fromToken, toToken, amount, recipient, amountOut);
   }
 
+  /// @notice Function to swap one token for another at a time-weighted-average-price
+  /// @param handler Address of the COW Protocol contract handling TWAP swaps
+  /// @param relayer Address of the GvP2 Order contract
+  /// @param fromToken Address of the token to swap
+  /// @param toToken Address of the token to receive
+  /// @param recipient Address that will receive toToken
+  /// @param sellAmount The amount of tokens to sell per TWAP swap
+  /// @param minPartLimit Minimum amount of toToken to receive per TWAP swap
+  /// @param startTime Timestamp of when TWAP orders start
+  /// @param numParts Number of TWAP swaps to take place (each for sellAmount)
+  /// @param partDuration How long each TWAP takes (ie: hourly, weekly, etc)
+  /// @param span The timeframe the orders can take place in
   function twapSwap(
     address handler,
     address relayer,
@@ -177,7 +189,7 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable, ERC1271Fo
       numParts,
       partDuration,
       span,
-      ''
+      bytes32(0)
     );
     IConditionalOrder.ConditionalOrderParams memory params = IConditionalOrder
       .ConditionalOrderParams(
@@ -245,6 +257,17 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable, ERC1271Fo
     );
   }
 
+  /// @notice Function to cancel a pending time-weighted-average-price swap
+  /// @param handler Address of the COW Protocol contract handling TWAP swaps
+  /// @param fromToken Address of the token to swap
+  /// @param toToken Address of the token to receive
+  /// @param recipient Address that will receive toToken
+  /// @param sellAmount The amount of tokens to sell per TWAP swap
+  /// @param minPartLimit Minimum amount of toToken to receive per TWAP swap
+  /// @param startTime Timestamp of when TWAP orders start
+  /// @param numParts Number of TWAP swaps to take place (each for sellAmount)
+  /// @param partDuration How long each TWAP takes (ie: hourly, weekly, etc)
+  /// @param span The timeframe the orders can take place in
   function cancelTwapSwap(
     address handler,
     address fromToken,
@@ -267,7 +290,7 @@ contract AaveSwapper is Initializable, OwnableWithGuardian, Rescuable, ERC1271Fo
       numParts,
       partDuration,
       span,
-      ''
+      bytes32(0)
     );
     IConditionalOrder.ConditionalOrderParams memory params = IConditionalOrder
       .ConditionalOrderParams(
