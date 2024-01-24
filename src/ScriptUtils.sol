@@ -72,18 +72,27 @@ abstract contract GnosisScript is WithChainIdValidation {
   constructor() WithChainIdValidation(ChainIds.GNOSIS) {}
 }
 
+abstract contract ScrollScript is WithChainIdValidation {
+  constructor() WithChainIdValidation(ChainIds.SCROLL) {}
+}
+
+abstract contract PolygonZkEvmScript is WithChainIdValidation {
+  constructor() WithChainIdValidation(ChainIds.ZK_EVM) {}
+}
+
 abstract contract SepoliaScript is WithChainIdValidation {
   constructor() WithChainIdValidation(ChainIds.SEPOLIA) {}
 }
 
 library Create2Utils {
+  // https://github.com/safe-global/safe-singleton-factory
   address public constant CREATE2_FACTORY = 0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7;
 
-  function _create2Deploy(bytes32 salt, bytes memory bytecode) internal returns (address) {
+  function create2Deploy(bytes32 salt, bytes memory bytecode) internal returns (address) {
     if (isContractDeployed(CREATE2_FACTORY) == false) {
       revert('MISSING_CREATE2_FACTORY');
     }
-    address computed = computeCreate2Address(salt, keccak256(abi.encodePacked(bytecode)));
+    address computed = computeCreate2Address(salt, bytecode);
 
     if (isContractDeployed(computed)) {
       return computed;
@@ -109,6 +118,13 @@ library Create2Utils {
       addressFromLast20Bytes(
         keccak256(abi.encodePacked(bytes1(0xff), CREATE2_FACTORY, salt, initcodeHash))
       );
+  }
+
+  function computeCreate2Address(
+    bytes32 salt,
+    bytes memory bytecode
+  ) internal pure returns (address) {
+    return computeCreate2Address(salt, keccak256(abi.encodePacked(bytecode)));
   }
 
   function addressFromLast20Bytes(bytes32 bytesValue) internal pure returns (address) {
