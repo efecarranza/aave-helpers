@@ -6,6 +6,7 @@ import {Test} from 'forge-std/Test.sol';
 import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 
+import {QuestVoteType, QuestRewardsType, QuestCloseType, IQuestBoard} from '../../src/asset-manager/interfaces/IQuestBoard.sol';
 import {IVlToken} from '../../src/asset-manager/interfaces/IVlToken.sol';
 import {StrategicAssetsManager} from '../../src/asset-manager/StrategicAssetsManager.sol';
 import {VlTokenManager} from '../../src/asset-manager/VlTokenManager.sol';
@@ -247,5 +248,24 @@ contract EmergencyWithdrawVLAURA is VlTokenManagerTest {
       address(strategicAssets)
     );
     assertEq(lockedBalanceAfterWithdraw, 0);
+  }
+}
+
+contract CreateFixedQuest is VlTokenManagerTest {
+  function test_revertsIf_invalidCaller() public {
+    address[] memory voterList = new address[](0);
+    vm.expectRevert('ONLY_BY_OWNER_OR_GUARDIAN');
+    strategicAssets.createFixedQuest(
+      address(0),
+      address(0),
+      true,
+      2,
+      100,
+      100e18,
+      500,
+      QuestVoteType.NORMAL,
+      QuestCloseType.NORMAL,
+      voterList
+    );
   }
 }
