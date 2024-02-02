@@ -961,13 +961,81 @@ contract ClaimQuestBoardRewards is QuestBoardTest {
     proof[5] = 0xcb8eb48cfceb20cde3015a6ecdba1439584431d2d70f97b4893d612a225451c7;
 
     vm.startPrank(address(0));
-    IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).updateQuestPeriod(8, 1668643200);
+    IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).updateQuestPeriod(8, 1668643200, 1, proof[0]);
     vm.stopPrank();
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     strategicAssets.claimQuestBoardRewards(
       8,
       1668643200,
       2,
+      0x512fce9B07Ce64590849115EE6B32fd40eC0f5F3,
+      547805540312569393,
+      proof
+    );
+
+    assertTrue(IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).isClaimed(8, 1668643200, 12));
+  }
+}
+
+contract ClaimDelegatedQuestBoardRewards is QuestBoardTest {
+  error MerkleRootNotUpdated();
+
+  function test_revertsIf_invalidCaller() public {
+    bytes32[] memory proof = new bytes32[](0);
+    vm.expectRevert('ONLY_BY_OWNER_OR_GUARDIAN');
+    strategicAssets.claimDelegatedQuestBoardRewards(
+      address(0),
+      1,
+      address(strategicAssets),
+      1,
+      proof
+    );
+  }
+
+  function test_revertsIf_accountIsAddressZero() public {
+    bytes32[] memory proof = new bytes32[](0);
+    vm.expectRevert(AddressZero.selector);
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    strategicAssets.claimDelegatedQuestBoardRewards(
+      AURA,
+      1,
+      address(0),
+      1,
+      proof
+    );
+  }
+
+  function test_revertsIf_merkleRootDoesNotExist() public {
+    bytes32[] memory proof = new bytes32[](0);
+    vm.expectRevert(MerkleRootNotUpdated.selector);
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    strategicAssets.claimDelegatedQuestBoardRewards(
+      AURA,
+      1,
+      address(strategicAssets),
+      1,
+      proof
+    );
+  }
+
+  function test_successful() public {
+    assertFalse(IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).isClaimed(8, 1668643200, 12));
+
+    bytes32[] memory proof = new bytes32[](6);
+    proof[0] = 0x1fc40a8213aeeb48d5c01c47869f71773fdb2f3034d133e93e9116e2ee9f76fb;
+    proof[1] = 0x757111884fd76f4403bcebd46a841a8da744e5eea7577239957c95ad5fb484b9;
+    proof[2] = 0x4fc8b614ad815e09b9f2455e3193d1a9c285b35e5c7f38dac7fb996301e20935;
+    proof[3] = 0x555faf248efac943412962f7032ca26c87f29be7de387f1f85d1b33550d0e421;
+    proof[4] = 0xccaa18ce00db175cf722abe9623ad65e9763bc7f352f24bc9e054c2a06dcff9f;
+    proof[5] = 0xcb8eb48cfceb20cde3015a6ecdba1439584431d2d70f97b4893d612a225451c7;
+
+    vm.startPrank(address(0));
+    IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).updateQuestPeriod(8, 1668643200, 1, proof[0]);
+    vm.stopPrank();
+    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    strategicAssets.claimDelegatedQuestBoardRewards(
+      AURA,
+      1668643200,
       0x512fce9B07Ce64590849115EE6B32fd40eC0f5F3,
       547805540312569393,
       proof

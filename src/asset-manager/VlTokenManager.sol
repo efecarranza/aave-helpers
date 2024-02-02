@@ -14,11 +14,6 @@ import {Common} from './Common.sol';
 abstract contract VlTokenManager is Common {
   using SafeERC20 for IERC20;
 
-  error InvalidSignatureLength();
-  error InvalidSignatureS();
-  error InvalidSignatureV();
-  error InvalidSignature();
-
   event ClaimVLAURARewards();
   event DelegatedVLAURA(address newDelegate);
   event EmergencyWithdraw(uint256 tokensUnlocked);
