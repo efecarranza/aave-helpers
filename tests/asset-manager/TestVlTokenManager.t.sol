@@ -30,7 +30,7 @@ contract VlTokenManagerTest is Test {
   StrategicAssetsManager public strategicAssets;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('mainnet'), 19090803);
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 19138307);
 
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     strategicAssets = new StrategicAssetsManager();
@@ -75,7 +75,7 @@ contract LockVLAURATest is VlTokenManagerTest {
     deal(AURA, address(strategicAssets), 1_000e18);
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     vm.expectEmit();
-    emit LockVLAURA(1_000e18, 1697582531);
+    emit LockVLAURA(1_000e18, 1717129271);
     strategicAssets.lockVLAURA(1_000e18);
     vm.stopPrank();
 
@@ -101,7 +101,7 @@ contract RelockVLAURATest is VlTokenManagerTest {
     deal(AURA, address(strategicAssets), 1_000e18);
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     vm.expectEmit();
-    emit LockVLAURA(1_000e18, 1697582531);
+    emit LockVLAURA(1_000e18, 1717129271);
     strategicAssets.lockVLAURA(1_000e18);
 
     vm.expectRevert('no exp locks');
@@ -116,7 +116,7 @@ contract RelockVLAURATest is VlTokenManagerTest {
     assertEq(IERC20(AURA).balanceOf(address(strategicAssets)), amount);
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     vm.expectEmit();
-    emit LockVLAURA(amount, 1697582531);
+    emit LockVLAURA(amount, 1717129271);
     strategicAssets.lockVLAURA(amount);
 
     vm.warp(block.timestamp + IVlToken(VL_AURA).lockDuration());
@@ -146,7 +146,7 @@ contract UnlockVLAURATest is VlTokenManagerTest {
     deal(AURA, address(strategicAssets), 1_000e18);
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     vm.expectEmit();
-    emit LockVLAURA(1_000e18, 1697582531);
+    emit LockVLAURA(1_000e18, 1717129271);
     strategicAssets.lockVLAURA(1_000e18);
 
     vm.expectRevert('no exp locks');
@@ -161,7 +161,7 @@ contract UnlockVLAURATest is VlTokenManagerTest {
     assertEq(IERC20(AURA).balanceOf(address(strategicAssets)), amount);
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     vm.expectEmit();
-    emit LockVLAURA(amount, 1697582531);
+    emit LockVLAURA(amount, 1717129271);
     strategicAssets.lockVLAURA(amount);
 
     // AURA Locked
@@ -950,35 +950,28 @@ contract ClaimQuestBoardRewards is QuestBoardTest {
   }
 
   function test_successful() public {
-    assertFalse(IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).isClaimed(8, 1668643200, 12));
+    assertFalse(IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).isClaimed(3, 1698278400, 1));
 
-    bytes32[] memory proof = new bytes32[](6);
-    proof[0] = 0x1fc40a8213aeeb48d5c01c47869f71773fdb2f3034d133e93e9116e2ee9f76fb;
-    proof[1] = 0x757111884fd76f4403bcebd46a841a8da744e5eea7577239957c95ad5fb484b9;
-    proof[2] = 0x4fc8b614ad815e09b9f2455e3193d1a9c285b35e5c7f38dac7fb996301e20935;
-    proof[3] = 0x555faf248efac943412962f7032ca26c87f29be7de387f1f85d1b33550d0e421;
-    proof[4] = 0xccaa18ce00db175cf722abe9623ad65e9763bc7f352f24bc9e054c2a06dcff9f;
-    proof[5] = 0xcb8eb48cfceb20cde3015a6ecdba1439584431d2d70f97b4893d612a225451c7;
+    bytes32[] memory proof = new bytes32[](1);
+    proof[0] = 0x9a1d1d9c7596d7f2194084dea94fd283da911db4d837889b3f53ea528b65403d;
 
-    vm.startPrank(address(0));
-    IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).updateQuestPeriod(8, 1668643200, 1, proof[0]);
-    vm.stopPrank();
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     strategicAssets.claimQuestBoardRewards(
-      8,
-      1668643200,
-      2,
-      0x512fce9B07Ce64590849115EE6B32fd40eC0f5F3,
-      547805540312569393,
+      3,
+      1698278400,
+      1,
+      0x1F08863F246fe456F94579D1A2009108B574F509,
+      2537917350598567728000,
       proof
     );
 
-    assertTrue(IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).isClaimed(8, 1668643200, 12));
+    assertTrue(IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).isClaimed(3, 1698278400, 1));
   }
 }
 
 contract ClaimDelegatedQuestBoardRewards is QuestBoardTest {
   error MerkleRootNotUpdated();
+  error ZeroAddress();
 
   function test_revertsIf_invalidCaller() public {
     bytes32[] memory proof = new bytes32[](0);
@@ -994,7 +987,7 @@ contract ClaimDelegatedQuestBoardRewards is QuestBoardTest {
 
   function test_revertsIf_accountIsAddressZero() public {
     bytes32[] memory proof = new bytes32[](0);
-    vm.expectRevert(AddressZero.selector);
+    vm.expectRevert(ZeroAddress.selector);
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     strategicAssets.claimDelegatedQuestBoardRewards(
       AURA,
@@ -1019,28 +1012,26 @@ contract ClaimDelegatedQuestBoardRewards is QuestBoardTest {
   }
 
   function test_successful() public {
-    assertFalse(IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).isClaimed(8, 1668643200, 12));
+    assertFalse(IQuestDelegationDistributor(strategicAssets.DELEGATED_DISTRIBUTOR()).isClaimed(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, 7));
 
-    bytes32[] memory proof = new bytes32[](6);
-    proof[0] = 0x1fc40a8213aeeb48d5c01c47869f71773fdb2f3034d133e93e9116e2ee9f76fb;
-    proof[1] = 0x757111884fd76f4403bcebd46a841a8da744e5eea7577239957c95ad5fb484b9;
-    proof[2] = 0x4fc8b614ad815e09b9f2455e3193d1a9c285b35e5c7f38dac7fb996301e20935;
-    proof[3] = 0x555faf248efac943412962f7032ca26c87f29be7de387f1f85d1b33550d0e421;
-    proof[4] = 0xccaa18ce00db175cf722abe9623ad65e9763bc7f352f24bc9e054c2a06dcff9f;
-    proof[5] = 0xcb8eb48cfceb20cde3015a6ecdba1439584431d2d70f97b4893d612a225451c7;
+    bytes32[] memory proof = new bytes32[](7);
+    proof[0] = 0x082bc9625258a404af82cc1571c9488f9d36f124a3388686eb137ac62209a347;
+    proof[1] = 0xfe9e19df7df113e2aec8cb167ca8c864e6d7f285e312b964e2a57e57c1e174b2;
+    proof[2] = 0xcf5636342e6b8b4a9071e8bcbc7b8d5a799c65e53a6772e5ea76029e3023a697;
+    proof[3] = 0x03a5dbeb933649a4a2ab40d1f84417a11d93d56c737035428806a5a9ee27d3b9;
+    proof[4] = 0xf78ff64bdc1589f53e7aa13cc65d2a804612fa4d501376ab10e91bd7d6ed70d1;
+    proof[5] = 0xfe2e4d85be17a8dcf174753461d1daf596515519c336b1ce1837a9038051b890;
+    proof[6] = 0x13fa75c45e144a131122b3342dcd852d572a5cbb1e48144f8fc855e7b4281760;
 
-    vm.startPrank(address(0));
-    IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).updateQuestPeriod(8, 1668643200, 1, proof[0]);
-    vm.stopPrank();
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     strategicAssets.claimDelegatedQuestBoardRewards(
-      AURA,
-      1668643200,
-      0x512fce9B07Ce64590849115EE6B32fd40eC0f5F3,
-      547805540312569393,
+      0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, // USDC
+      7,
+      0x20907A020A4A85669F2940D645e94C5B6490d1ad,
+      1154795643,
       proof
     );
 
-    assertTrue(IQuestDistributor(strategicAssets.QUESTBOARD_DISTRIBUTOR_VEBAL()).isClaimed(8, 1668643200, 12));
+    assertTrue(IQuestDelegationDistributor(strategicAssets.DELEGATED_DISTRIBUTOR()).isClaimed(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, 7));
   }
 }
