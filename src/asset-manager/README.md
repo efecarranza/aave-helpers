@@ -144,6 +144,8 @@ Unlock vlAURA position into AURA. Lock period needs to have passed or it will re
 
 Emergency function to exit a position if the AURA system is shut down.
 
+
+
 ##### LSDLiquidityGaugeManager.sol
 
 `function setGaugeController(address token, address gaugeController) public onlyOwnerOrGuardian`
