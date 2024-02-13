@@ -13,6 +13,7 @@ import {AaveV3PolygonPriceFeedUpdate} from '../mocks/AaveV3PolygonPriceFeedUpdat
 import {AaveV3PolygonEModeCategoryUpdate, AaveV3AvalancheEModeCategoryUpdateEdgeBonus} from '../mocks/AaveV3PolygonEModeCategoryUpdate.sol';
 import {AaveV3AvalancheEModeCategoryUpdateNoChange} from '../mocks/AaveV3AvalancheEModeCategoryUpdateNoChange.sol';
 import {AaveV3EthereumAssetEModeUpdate} from '../mocks/AaveV3EthereumAssetEModeUpdate.sol';
+import {AaveV3PolygonBorrowUpdateNoChange} from '../mocks/AaveV3PolygonBorrowUpdateNoChange.sol';
 import {AaveV3OptimismMockRatesUpdate} from '../mocks/AaveV3OptimismMockRatesUpdate.sol';
 import {DeployRatesFactoryPolLib, DeployRatesFactoryEthLib, DeployRatesFactoryAvaLib, DeployRatesFactoryArbLib, DeployRatesFactoryOptLib} from '../../scripts/V3RateStrategyFactory.s.sol';
 import {DeployEnginePolLib, DeployEngineEthLib, DeployEngineAvaLib, DeployEngineOptLib, DeployEngineArbLib} from '../../scripts/AaveV3ConfigEngine.s.sol';
@@ -38,11 +39,11 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
   uint256 arbitrumFork;
 
   function setUp() public {
-    mainnetFork = vm.createSelectFork(vm.rpcUrl('mainnet'), 17326583);
-    optimismFork = vm.createSelectFork(vm.rpcUrl('optimism'), 100960572);
-    polygonFork = vm.createSelectFork(vm.rpcUrl('polygon'), 42811924);
-    avalancheFork = vm.createSelectFork(vm.rpcUrl('avalanche'), 30323695);
-    arbitrumFork = vm.createSelectFork(vm.rpcUrl('arbitrum'), 92866839);
+    mainnetFork = vm.createSelectFork(vm.rpcUrl('mainnet'), 18515746);
+    optimismFork = vm.createSelectFork(vm.rpcUrl('optimism'), 115008197);
+    polygonFork = vm.createSelectFork(vm.rpcUrl('polygon'), 50170881);
+    avalancheFork = vm.createSelectFork(vm.rpcUrl('avalanche'), 37426577);
+    arbitrumFork = vm.createSelectFork(vm.rpcUrl('arbitrum'), 147823152);
   }
 
   event CollateralConfigurationChanged(
@@ -123,7 +124,7 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
       _findReserveConfigBySymbol(allConfigsAfter, '1INCH'),
       ReserveTokens({
         aToken: AaveV3Polygon.DEFAULT_A_TOKEN_IMPL_REV_2,
-        stableDebtToken: AaveV3Polygon.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_2,
+        stableDebtToken: AaveV3Polygon.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_3,
         variableDebtToken: AaveV3Polygon.DEFAULT_VARIABLE_DEBT_TOKEN_IMPL_REV_2
       })
     );
@@ -137,10 +138,10 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
     // impl should be same as e.g. AAVE
     _validateReserveTokensImpls(
       AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
-      _findReserveConfigBySymbol(allConfigsAfter, 'AAVE'),
+      _findReserveConfigBySymbol(allConfigsAfter, 'CRV'),
       ReserveTokens({
         aToken: AaveV3Polygon.DEFAULT_A_TOKEN_IMPL_REV_2,
-        stableDebtToken: AaveV3Polygon.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_2,
+        stableDebtToken: AaveV3Polygon.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_3,
         variableDebtToken: AaveV3Polygon.DEFAULT_VARIABLE_DEBT_TOKEN_IMPL_REV_2
       })
     );
@@ -171,8 +172,8 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
     diffReports('preTestEngineListingCustom', 'postTestEngineListingCustom');
 
     ReserveConfig memory expectedAssetConfig = ReserveConfig({
-      symbol: '1INCH',
-      underlying: 0x111111111117dC0aa78b770fA6A738034120C302,
+      symbol: 'PSP',
+      underlying: 0xcAfE001067cDEF266AfB7Eb5A286dCFD277f3dE5,
       aToken: address(0), // Mock, as they don't get validated, because of the "dynamic" deployment on proposal execution
       variableDebtToken: address(0), // Mock, as they don't get validated, because of the "dynamic" deployment on proposal execution
       stableDebtToken: address(0), // Mock, as they don't get validated, because of the "dynamic" deployment on proposal execution
@@ -205,7 +206,7 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
 
     _validateReserveTokensImpls(
       AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-      _findReserveConfigBySymbol(allConfigsAfter, '1INCH'),
+      _findReserveConfigBySymbol(allConfigsAfter, 'PSP'),
       ReserveTokens({
         aToken: AaveV3Ethereum.DEFAULT_A_TOKEN_IMPL_REV_1,
         stableDebtToken: AaveV3Ethereum.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_1,
@@ -215,7 +216,7 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
 
     _validateAssetSourceOnOracle(
       AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-      0x111111111117dC0aa78b770fA6A738034120C302,
+      0xcAfE001067cDEF266AfB7Eb5A286dCFD277f3dE5,
       0x72AFAECF99C9d9C8215fF44C77B94B99C28741e8
     );
 
@@ -454,6 +455,38 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
     expectedAssetConfig.reserveFactor = 15_00;
     expectedAssetConfig.borrowingEnabled = true;
     expectedAssetConfig.isFlashloanable = false;
+
+    _validateReserveConfig(expectedAssetConfig, allConfigsAfter);
+  }
+
+  function testBorrowUpdatesNoChange() public {
+    vm.selectFork(polygonFork);
+
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy());
+    AaveV3PolygonBorrowUpdateNoChange payload = new AaveV3PolygonBorrowUpdateNoChange(engine);
+
+    vm.startPrank(AaveV3Polygon.ACL_ADMIN);
+    AaveV3Polygon.ACL_MANAGER.addPoolAdmin(address(payload));
+    vm.stopPrank();
+
+    ReserveConfig[] memory allConfigsBefore = createConfigurationSnapshot(
+      'preTestEngineBorrowNoChange',
+      AaveV3Polygon.POOL
+    );
+
+    payload.execute();
+
+    ReserveConfig[] memory allConfigsAfter = createConfigurationSnapshot(
+      'postTestEngineBorrowNoChange',
+      AaveV3Polygon.POOL
+    );
+
+    diffReports('preTestEngineBorrowNoChange', 'postTestEngineBorrowNoChange');
+
+    ReserveConfig memory expectedAssetConfig = _findReserveConfig(
+      allConfigsBefore,
+      AaveV3PolygonAssets.AAVE_UNDERLYING
+    );
 
     _validateReserveConfig(expectedAssetConfig, allConfigsAfter);
   }
