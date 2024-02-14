@@ -90,14 +90,7 @@ contract AaveSwapper is IAaveSwapper, Initializable, OwnableWithGuardian, Rescua
     _cancelSwap(tradeMilkman, priceChecker, fromToken, toToken, recipient, amount, data);
   }
 
-  /// @notice Function to cancel an existing limit swap
-  /// @param tradeMilkman Address of the Milkman contract created upon order submission
-  /// @param priceChecker Address of the price checker to validate order
-  /// @param fromToken Address of the token to swap from
-  /// @param toToken Address of the token to swap to
-  /// @param recipient Address of the account receiving the swapped funds
-  /// @param amount The amount of fromToken to swap
-  /// @param amountOut The limit price of the toToken (minimium amount to receive)
+  /// @inheritdoc IAaveSwapper
   function cancelLimitSwap(
     address tradeMilkman,
     address priceChecker,
@@ -118,13 +111,7 @@ contract AaveSwapper is IAaveSwapper, Initializable, OwnableWithGuardian, Rescua
     );
   }
 
-  /// @notice Helper function to see how much one could expect return in a swap
-  /// @param priceChecker Address of the price checker to validate order
-  /// @param amount The amount of fromToken to swap
-  /// @param fromToken Address of the token to swap from
-  /// @param toToken Address of the token to swap to
-  /// @param fromOracle Address of the oracle to check fromToken price
-  /// @param toOracle Address of the oracle to check toToken price
+  /// @inheritdoc IAaveSwapper
   function getExpectedOut(
     address priceChecker,
     uint256 amount,
