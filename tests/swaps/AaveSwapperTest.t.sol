@@ -3,13 +3,14 @@
 pragma solidity ^0.8.0;
 
 import {Test} from 'forge-std/Test.sol';
-import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
+import {GovernanceV3Ethereum} from 'aave-address-book/GovernanceV3Ethereum.sol';
 import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 
 import {IAggregatorV3Interface} from '../../src/swaps/interfaces/IAggregatorV3Interface.sol';
 import {AaveSwapper} from '../../src/swaps/AaveSwapper.sol';
+import {IAaveSwapper} from '../../src/swaps/IAaveSwapper.sol';
 
 contract MockOracle {
   fallback() external {} // Nothing Happens
@@ -52,7 +53,7 @@ contract AaveSwapperTest is Test {
   function setUp() public virtual {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 17779177);
 
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps = new AaveSwapper();
     vm.stopPrank();
   }
@@ -73,7 +74,7 @@ contract TransferOwnership is AaveSwapperTest {
 
   function test_successful() public {
     address newAdmin = makeAddr('new-admin');
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps.transferOwnership(newAdmin);
     vm.stopPrank();
 
@@ -91,7 +92,7 @@ contract UpdateGuardian is AaveSwapperTest {
     address newManager = makeAddr('new-admin');
     vm.expectEmit();
     emit GuardianUpdated(swaps.guardian(), newManager);
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps.updateGuardian(newManager);
     vm.stopPrank();
 
@@ -108,7 +109,7 @@ contract RemoveGuardian is AaveSwapperTest {
   function test_successful() public {
     vm.expectEmit();
     emit GuardianUpdated(swaps.guardian(), address(0));
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps.updateGuardian(address(0));
     vm.stopPrank();
 
@@ -134,8 +135,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_amountIsZero() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.InvalidAmount.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.InvalidAmount.selector);
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
@@ -151,8 +152,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_fromTokenIsZeroAddress() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.Invalid0xAddress.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.Invalid0xAddress.selector);
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
@@ -168,8 +169,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_toTokenIsZeroAddress() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.Invalid0xAddress.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.Invalid0xAddress.selector);
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
@@ -185,8 +186,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_invalidRecipient() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.InvalidRecipient.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.InvalidRecipient.selector);
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
@@ -202,8 +203,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_fromOracleNotSet() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.OracleNotSet.selector);
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
@@ -219,8 +220,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_toOracleNotSet() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.OracleNotSet.selector);
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
@@ -236,7 +237,7 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_fromOracleIsInvalidNoDecimalsFunction() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     vm.expectRevert();
     swaps.swap(
       MILKMAN,
@@ -253,7 +254,7 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_toOracleIsInvalidNoDecimalsFunction() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     vm.expectRevert();
     swaps.swap(
       MILKMAN,
@@ -270,8 +271,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_fromOracleIsInvalid() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.InvalidOracle.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.InvalidOracle.selector);
     vm.mockCall(
       BAD_ORACLE,
       abi.encodeWithSelector(IAggregatorV3Interface.decimals.selector),
@@ -294,7 +295,7 @@ contract AaveSwapperSwap is AaveSwapperTest {
   function test_revertsIf_fromOracleIsInvalidWithFallbackFunction() public {
     address badOracle = address(new MockOracle());
 
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     vm.expectRevert();
     swaps.swap(
       MILKMAN,
@@ -311,8 +312,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_passedOracleIsAaveV2WETHOracle() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.OracleNotSet.selector);
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
@@ -329,7 +330,7 @@ contract AaveSwapperSwap is AaveSwapperTest {
 
   function test_successful() public {
     deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
 
     vm.expectEmit(true, true, true, true);
     emit SwapRequested(
@@ -376,7 +377,7 @@ contract CancelSwap is AaveSwapperTest {
 
   function test_revertsIf_noMatchingTrade() public {
     deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
@@ -406,7 +407,7 @@ contract CancelSwap is AaveSwapperTest {
 
   function test_successful() public {
     deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
 
     vm.expectEmit(true, true, true, true);
     emit SwapRequested(
@@ -479,7 +480,7 @@ contract EmergencyTokenTransfer is AaveSwapperTest {
       address(AaveV2Ethereum.COLLECTOR)
     );
 
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps.emergencyTokenTransfer(
       AaveV2EthereumAssets.AAVE_UNDERLYING,
       address(AaveV2Ethereum.COLLECTOR),
@@ -498,7 +499,7 @@ contract EmergencyTokenTransfer is AaveSwapperTest {
 contract GetExpectedOut is AaveSwapperTest {
   function test_revertsIf_fromOracleIsAddressZero() public {
     uint256 amount = 1e18;
-    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
+    vm.expectRevert(IAaveSwapper.OracleNotSet.selector);
     swaps.getExpectedOut(
       CHAINLINK_PRICE_CHECKER,
       amount,
@@ -511,7 +512,7 @@ contract GetExpectedOut is AaveSwapperTest {
 
   function test_revertsIf_toOracleIsAddressZero() public {
     uint256 amount = 1e18;
-    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
+    vm.expectRevert(IAaveSwapper.OracleNotSet.selector);
     swaps.getExpectedOut(
       CHAINLINK_PRICE_CHECKER,
       amount,
@@ -611,7 +612,7 @@ contract LimitSwap is AaveSwapperTest {
   function setUp() public override {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 18815161);
 
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps = new AaveSwapper();
     vm.stopPrank();
   }
@@ -631,8 +632,8 @@ contract LimitSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_amountIsZero() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.InvalidAmount.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.InvalidAmount.selector);
     swaps.limitSwap(
       MILKMAN,
       LIMIT_ORDER_PRICE_CHECKER,
@@ -646,8 +647,8 @@ contract LimitSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_fromTokenIsZeroAddress() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.Invalid0xAddress.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.Invalid0xAddress.selector);
     swaps.limitSwap(
       MILKMAN,
       LIMIT_ORDER_PRICE_CHECKER,
@@ -661,8 +662,8 @@ contract LimitSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_toTokenIsZeroAddress() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.Invalid0xAddress.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.Invalid0xAddress.selector);
     swaps.limitSwap(
       MILKMAN,
       LIMIT_ORDER_PRICE_CHECKER,
@@ -676,8 +677,8 @@ contract LimitSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_invalidRecipient() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.InvalidRecipient.selector);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+    vm.expectRevert(IAaveSwapper.InvalidRecipient.selector);
     swaps.limitSwap(
       MILKMAN,
       LIMIT_ORDER_PRICE_CHECKER,
@@ -692,7 +693,7 @@ contract LimitSwap is AaveSwapperTest {
 
   function test_successful() public {
     deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
 
     vm.expectEmit(true, true, true, true);
     emit LimitSwapRequested(
@@ -720,7 +721,7 @@ contract CancelLimitSwap is AaveSwapperTest {
   function setUp() public override {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 18815161);
 
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps = new AaveSwapper();
     vm.stopPrank();
   }
@@ -741,7 +742,7 @@ contract CancelLimitSwap is AaveSwapperTest {
 
   function test_revertsIf_noMatchingTrade() public {
     deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps.limitSwap(
       MILKMAN,
       LIMIT_ORDER_PRICE_CHECKER,
@@ -767,7 +768,7 @@ contract CancelLimitSwap is AaveSwapperTest {
 
   function test_successful() public {
     deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
 
     vm.expectEmit(true, true, true, true);
     emit LimitSwapRequested(
