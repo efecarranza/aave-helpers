@@ -17,11 +17,14 @@ import {GovernanceV3Metis} from 'aave-address-book/GovernanceV3Metis.sol';
 import {GovernanceV3Base} from 'aave-address-book/GovernanceV3Base.sol';
 import {GovernanceV3BNB} from 'aave-address-book/GovernanceV3BNB.sol';
 import {GovernanceV3Gnosis} from 'aave-address-book/GovernanceV3Gnosis.sol';
+import {GovernanceV3Scroll} from 'aave-address-book/GovernanceV3Scroll.sol';
+import {GovernanceV3PolygonZkEvm} from 'aave-address-book/GovernanceV3PolygonZkEvm.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 import {Address} from 'solidity-utils/contracts/oz-common/Address.sol';
 import {StorageHelpers} from './StorageHelpers.sol';
 import {ProxyHelpers} from './ProxyHelpers.sol';
 import {GovHelpers, IAaveGovernanceV2} from './GovHelpers.sol';
+import {Create2Utils} from './ScriptUtils.sol';
 
 interface IGovernance_V2_5 {
   /**
@@ -62,7 +65,7 @@ interface IGovernance_V2_5 {
 }
 
 library GovV3Helpers {
-  error CanNotFindPayload();
+  error CannotFindPayload();
   error CannotFindPayloadsController();
   error ExecutorNotFound();
   error LongBytesNotSupportedYet();
@@ -92,7 +95,7 @@ library GovV3Helpers {
   ) internal returns (IVotingMachineWithProofs.VotingBalanceProof[] memory) {
     string[] memory inputs = new string[](8);
     inputs[0] = 'npx';
-    inputs[1] = '@bgd-labs/aave-cli@0.1.0';
+    inputs[1] = '@bgd-labs/aave-cli@^0.7.0';
     inputs[2] = 'governance';
     inputs[3] = 'getVotingProofs';
     inputs[4] = '--proposalId';
@@ -118,7 +121,7 @@ library GovV3Helpers {
   ) internal returns (StorageRootResponse[] memory) {
     string[] memory inputs = new string[](6);
     inputs[0] = 'npx';
-    inputs[1] = '@bgd-labs/aave-cli@0.1.0';
+    inputs[1] = '@bgd-labs/aave-cli@^0.7.0';
     inputs[2] = 'governance';
     inputs[3] = 'getStorageRoots';
     inputs[4] = '--proposalId';
@@ -151,6 +154,36 @@ library GovV3Helpers {
     uint256 chainId = IVotingPortal(proposal.votingPortal).VOTING_MACHINE_CHAIN_ID();
     ChainHelpers.selectChain(vm, chainId);
     IVotingMachineWithProofs(machine).submitVote(proposalId, support, votingBalanceProofs);
+  }
+
+  /**
+   * Deploys a contract with a constant salt
+   */
+  function deployDeterministic(bytes memory bytecode) internal returns (address) {
+    return Create2Utils.create2Deploy('v1', bytecode);
+  }
+
+  /**
+   * Predicts the payload based on a constant salt
+   */
+  function predictDeterministicAddress(bytes memory bytecode) internal pure returns (address) {
+    return Create2Utils.computeCreate2Address('v1', bytecode);
+  }
+
+  /**
+   * @dev builds a action to be registered on a payloadsController
+   * - assumes accesscontrol level 1
+   * - assumes delegateCall true
+   * - assumes standard `execute()` signature on the payload contract
+   * - assumes eth value 0
+   * - assumes no calldata being necessary
+   * @param bytecode bytecode of the payload to be executed
+   */
+  function buildAction(
+    bytes memory bytecode
+  ) internal pure returns (IPayloadsControllerCore.ExecutionAction memory) {
+    address payloadAddress = predictDeterministicAddress(bytecode);
+    return buildAction(payloadAddress);
   }
 
   /**
@@ -484,6 +517,54 @@ library GovV3Helpers {
   }
 
   /**
+   * Builds a payload to be executed via governance
+   * @param vm Vm
+   * @param actions actions array
+   */
+  function buildPolygonZkEvmPayload(
+    Vm vm,
+    IPayloadsControllerCore.ExecutionAction[] memory actions
+  ) internal returns (PayloadsControllerUtils.Payload memory) {
+    return _buildPayload(vm, ChainIds.ZK_EVM, actions);
+  }
+
+  /**
+   * Builds a payload to be executed via governance
+   * @param vm Vm
+   * @param action actions array
+   */
+  function buildPolygonZkEvmPayload(
+    Vm vm,
+    IPayloadsControllerCore.ExecutionAction memory action
+  ) internal returns (PayloadsControllerUtils.Payload memory) {
+    return _buildPayload(vm, ChainIds.ZK_EVM, action);
+  }
+
+  /**
+   * Builds a payload to be executed via governance
+   * @param vm Vm
+   * @param actions actions array
+   */
+  function buildScrollPayload(
+    Vm vm,
+    IPayloadsControllerCore.ExecutionAction[] memory actions
+  ) internal returns (PayloadsControllerUtils.Payload memory) {
+    return _buildPayload(vm, ChainIds.SCROLL, actions);
+  }
+
+  /**
+   * Builds a payload to be executed via governance
+   * @param vm Vm
+   * @param action actions array
+   */
+  function buildScrollPayload(
+    Vm vm,
+    IPayloadsControllerCore.ExecutionAction memory action
+  ) internal returns (PayloadsControllerUtils.Payload memory) {
+    return _buildPayload(vm, ChainIds.SCROLL, action);
+  }
+
+  /**
    * @dev creates a proposal with multiple payloads
    * @param vm Vm
    * @param payloads payloads array
@@ -495,6 +576,29 @@ library GovV3Helpers {
     bytes32 ipfsHash
   ) internal returns (uint256) {
     return createProposal(vm, payloads, GovernanceV3Ethereum.VOTING_PORTAL_ETH_POL, ipfsHash);
+  }
+
+  /**
+   * @dev Executes an already created proposal on governance v3 by manipulating stororage so it#s executable in the current block.
+   * @param vm Vm
+   * @param proposalId id of the proposal to execute
+   */
+  function executeProposal(Vm vm, uint256 proposalId) internal {
+    GovV3StorageHelpers.readyProposal(vm, proposalId);
+    GovernanceV3Ethereum.GOVERNANCE.executeProposal(proposalId);
+  }
+
+  function build2_5Payload(
+    PayloadsControllerUtils.Payload memory payload
+  ) internal returns (GovHelpers.Payload memory) {
+    return
+      GovHelpers.Payload({
+        target: address(GovernanceV3Ethereum.GOVERNANCE),
+        value: 0,
+        signature: 'forwardPayloadForExecution((uint256,uint8,address,uint40))',
+        callData: abi.encode(payload),
+        withDelegatecall: false
+      });
   }
 
   // temporarily patched create proposal for governance v2.5
@@ -510,13 +614,7 @@ library GovV3Helpers {
     generateProposalPreviewLink(vm, payloads, ipfsHash, address(0));
     GovHelpers.Payload[] memory gov2Payloads = new GovHelpers.Payload[](payloads.length);
     for (uint256 i = 0; i < payloads.length; i++) {
-      gov2Payloads[i] = GovHelpers.Payload({
-        target: address(GovernanceV3Ethereum.GOVERNANCE),
-        value: 0,
-        signature: 'forwardPayloadForExecution((uint256,uint8,address,uint40))',
-        callData: abi.encode(payloads[i]),
-        withDelegatecall: false
-      });
+      gov2Payloads[i] = build2_5Payload(payloads[i]);
     }
     return GovHelpers.createProposal(gov2Payloads, ipfsHash, true);
   }
@@ -572,6 +670,10 @@ library GovV3Helpers {
       return GovernanceV3BNB.PAYLOADS_CONTROLLER;
     } else if (chainId == ChainIds.GNOSIS) {
       return GovernanceV3Gnosis.PAYLOADS_CONTROLLER;
+    } else if (chainId == ChainIds.SCROLL) {
+      return GovernanceV3Scroll.PAYLOADS_CONTROLLER;
+    } else if (chainId == ChainIds.ZK_EVM) {
+      return GovernanceV3PolygonZkEvm.PAYLOADS_CONTROLLER;
     }
 
     revert CannotFindPayloadsController();
@@ -603,7 +705,7 @@ library GovV3Helpers {
       payloadsStr = string.concat(payloadsStr, payload);
     }
     console2.log(
-      'https://aave-governance-v3-interface.vercel.app/createByParams?ipfsHash=%s&votingPortal=%s%s',
+      'https://vote.onaave.com/proposal-create-overview?ipfsHash=%s&votingPortal=%s%s',
       vm.toString(ipfsHash),
       votingPortal,
       payloadsStr
@@ -694,13 +796,15 @@ library GovV3Helpers {
     IPayloadsControllerCore.ExecutionAction[] memory actions
   ) private view returns (uint40, IPayloadsControllerCore.Payload memory) {
     uint40 count = payloadsController.getPayloadsCount();
-    for (uint40 payloadId = count - 1; payloadId >= 0; payloadId--) {
-      IPayloadsControllerCore.Payload memory payload = payloadsController.getPayloadById(payloadId);
+    for (uint40 payloadId = count; payloadId > 0; payloadId--) {
+      IPayloadsControllerCore.Payload memory payload = payloadsController.getPayloadById(
+        payloadId - 1
+      );
       if (_actionsAreEqual(actions, payload.actions)) {
-        return (payloadId, payload);
+        return (payloadId - 1, payload);
       }
     }
-    revert CanNotFindPayload();
+    revert CannotFindPayload();
   }
 
   function _actionsAreEqual(

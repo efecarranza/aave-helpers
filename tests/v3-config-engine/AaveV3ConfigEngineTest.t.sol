@@ -13,6 +13,7 @@ import {AaveV3PolygonPriceFeedUpdate} from '../mocks/AaveV3PolygonPriceFeedUpdat
 import {AaveV3PolygonEModeCategoryUpdate, AaveV3AvalancheEModeCategoryUpdateEdgeBonus} from '../mocks/AaveV3PolygonEModeCategoryUpdate.sol';
 import {AaveV3AvalancheEModeCategoryUpdateNoChange} from '../mocks/AaveV3AvalancheEModeCategoryUpdateNoChange.sol';
 import {AaveV3EthereumAssetEModeUpdate} from '../mocks/AaveV3EthereumAssetEModeUpdate.sol';
+import {AaveV3PolygonBorrowUpdateNoChange} from '../mocks/AaveV3PolygonBorrowUpdateNoChange.sol';
 import {AaveV3OptimismMockRatesUpdate} from '../mocks/AaveV3OptimismMockRatesUpdate.sol';
 import {DeployRatesFactoryPolLib, DeployRatesFactoryEthLib, DeployRatesFactoryAvaLib, DeployRatesFactoryArbLib, DeployRatesFactoryOptLib} from '../../scripts/V3RateStrategyFactory.s.sol';
 import {DeployEnginePolLib, DeployEngineEthLib, DeployEngineAvaLib, DeployEngineOptLib, DeployEngineArbLib} from '../../scripts/AaveV3ConfigEngine.s.sol';
@@ -39,7 +40,7 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
 
   function setUp() public {
     mainnetFork = vm.createSelectFork(vm.rpcUrl('mainnet'), 18515746);
-    optimismFork = vm.createSelectFork(vm.rpcUrl('optimism'), 111854461);
+    optimismFork = vm.createSelectFork(vm.rpcUrl('optimism'), 115008197);
     polygonFork = vm.createSelectFork(vm.rpcUrl('polygon'), 50170881);
     avalancheFork = vm.createSelectFork(vm.rpcUrl('avalanche'), 37426577);
     arbitrumFork = vm.createSelectFork(vm.rpcUrl('arbitrum'), 147823152);
@@ -454,6 +455,38 @@ contract AaveV3ConfigEngineTest is ProtocolV3TestBase {
     expectedAssetConfig.reserveFactor = 15_00;
     expectedAssetConfig.borrowingEnabled = true;
     expectedAssetConfig.isFlashloanable = false;
+
+    _validateReserveConfig(expectedAssetConfig, allConfigsAfter);
+  }
+
+  function testBorrowUpdatesNoChange() public {
+    vm.selectFork(polygonFork);
+
+    IAaveV3ConfigEngine engine = IAaveV3ConfigEngine(DeployEnginePolLib.deploy());
+    AaveV3PolygonBorrowUpdateNoChange payload = new AaveV3PolygonBorrowUpdateNoChange(engine);
+
+    vm.startPrank(AaveV3Polygon.ACL_ADMIN);
+    AaveV3Polygon.ACL_MANAGER.addPoolAdmin(address(payload));
+    vm.stopPrank();
+
+    ReserveConfig[] memory allConfigsBefore = createConfigurationSnapshot(
+      'preTestEngineBorrowNoChange',
+      AaveV3Polygon.POOL
+    );
+
+    payload.execute();
+
+    ReserveConfig[] memory allConfigsAfter = createConfigurationSnapshot(
+      'postTestEngineBorrowNoChange',
+      AaveV3Polygon.POOL
+    );
+
+    diffReports('preTestEngineBorrowNoChange', 'postTestEngineBorrowNoChange');
+
+    ReserveConfig memory expectedAssetConfig = _findReserveConfig(
+      allConfigsBefore,
+      AaveV3PolygonAssets.AAVE_UNDERLYING
+    );
 
     _validateReserveConfig(expectedAssetConfig, allConfigsAfter);
   }
