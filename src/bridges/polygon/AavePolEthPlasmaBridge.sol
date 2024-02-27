@@ -6,6 +6,7 @@ import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
 import {Ownable} from 'solidity-utils/contracts/oz-common/Ownable.sol';
 import {Rescuable} from 'solidity-utils/contracts/utils/Rescuable.sol';
+import {AaveV3Ethereum} from 'aave-address-book/AaveV3Ethereum.sol';
 
 import {ChainIds} from '../../ChainIds.sol';
 import {IAavePolEthPlasmaBridge} from './IAavePolEthPlasmaBridge.sol';
@@ -20,7 +21,7 @@ interface IERC20Polygon {
 
   /// @dev First step in bridging tokens
   /// @param amount The amount of tokens to withdraw (bridge)
-  function withdraw(uint256 amount) external;
+  function withdraw(uint256 amount) external payable;
 }
 
 interface IERC20PredicateBurnOnly {
@@ -48,8 +49,19 @@ contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   /// @dev The called method is not available on this chain
   error InvalidChain();
 
-  event Exit(bytes proof);
+    /// @dev Emitted when a bridge is initiated
   event Bridge(address token, uint256 amount);
+
+  /// @dev Emitted when the bridge transaction is confirmed
+  event ConfirmExit(bytes proof);
+
+  /// @dev Emitted when a token bridge is finalized
+  event Exit(address indexed token);
+
+    /// @dev Emitted when multiple token bridges are finalized
+  event ExitBatch(address[] indexed tokens);
+
+  /// @dev Emitted when token is withdrawn to the Aave Collector
   event WithdrawToCollector(address token, uint256 amount);
 
   /// @dev The mainnet address of the Predicate contract to confirm withdrawal
@@ -70,8 +82,36 @@ contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   function bridge(address token, uint256 amount) external onlyOwner {
     if (block.chainid != ChainIds.POLYGON) revert InvalidChain();
 
-    IERC20Polygon(token).withdraw(amount);
+    IERC20Polygon(token).withdraw{value: amount}(amount);
     emit Bridge(token, amount);
+  }
+
+  /// @inheritdoc IAavePolEthPlasmaBridge
+  function confirmExit(bytes calldata burnProof) external {
+    if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
+
+    IERC20PredicateBurnOnly(0x158d5fa3Ef8e4dDA8a5367deCF76b94E7efFCe95).startExitWithBurntTokens(
+      burnProof
+    );
+    emit ConfirmExit(burnProof);
+  }
+
+  /// @inheritdoc IAavePolEthPlasmaBridge
+  function exit(address token) external {
+    if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
+
+    IWithdrawManager(WITHDRAW_MANAGER).processExits(token);
+    emit Exit(token);
+  }
+
+  /// @inheritdoc IAavePolEthPlasmaBridge
+  function withdrawToCollector(address token) external {
+    if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
+
+    uint256 balance = IERC20(token).balanceOf(address(this));
+
+    IERC20(token).safeTransfer(address(AaveV3Ethereum.COLLECTOR), balance);
+    emit WithdrawToCollector(token, balance);
   }
 
   /// @inheritdoc Rescuable
