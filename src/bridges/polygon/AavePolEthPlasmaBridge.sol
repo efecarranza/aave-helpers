@@ -118,4 +118,9 @@ contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   function whoCanRescue() public view override returns (address) {
     return owner();
   }
+
+  /// @dev Allows the contract to receive Matic on Polygon
+  receive() external payable {
+    if (block.chainid != ChainIds.POLYGON) revert InvalidChain();
+  }
 }

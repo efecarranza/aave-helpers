@@ -70,9 +70,6 @@ contract BridgeTest is AavePolEthPlasmaBridgeTest {
     uint256 amount = 1_000e6;
 
     deal(address(bridgePolygon), amount);
-    vm.startPrank(WHALE);
-    IERC20(NATIVE_MATIC).transfer(address(bridgePolygon), amount);
-    vm.stopPrank();
 
     bridgePolygon.transferOwnership(GovernanceV3Polygon.EXECUTOR_LVL_1);
 
