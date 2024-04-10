@@ -2,6 +2,9 @@
 
 pragma solidity ^0.8.0;
 
+/// @title IAavePolEthPlasmaBridge
+/// @author efecarranza.eth
+/// @notice Interface for AavePolEthPlasmaBridge
 interface IAavePolEthPlasmaBridge {
   /// @dev The called method is not available on this chain
   error InvalidChain();
