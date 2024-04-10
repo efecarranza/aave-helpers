@@ -46,29 +46,8 @@ interface IWithdrawManager {
 contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   using SafeERC20 for IERC20;
 
-  /// @dev The called method is not available on this chain
-  error InvalidChain();
-
-    /// @dev Emitted when a bridge is initiated
-  event Bridge(address token, uint256 amount);
-
-  /// @dev Emitted when the bridge transaction is confirmed
-  event ConfirmExit(bytes proof);
-
-  /// @dev Emitted when a token bridge is finalized
-  event Exit(address indexed token);
-
-    /// @dev Emitted when multiple token bridges are finalized
-  event ExitBatch(address[] indexed tokens);
-
-  /// @dev Emitted when token is withdrawn to the Aave Collector
-  event WithdrawToCollector(address token, uint256 amount);
-
   /// @dev The mainnet address of the Predicate contract to confirm withdrawal
   address public constant ERC20_PREDICATE_BURN = 0x158d5fa3Ef8e4dDA8a5367deCF76b94E7efFCe95;
-
-  /// @dev The address of Matic on Polygon
-  address public constant NATIVE_MATIC = 0x0000000000000000000000000000000000001010;
 
   /// @dev The mainnet address of the withdrawal contract to exit the bridge
   address public constant WITHDRAW_MANAGER = 0x2A88696e0fFA76bAA1338F2C74497cC013495922;
@@ -90,9 +69,7 @@ contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   function confirmExit(bytes calldata burnProof) external {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
-    IERC20PredicateBurnOnly(0x158d5fa3Ef8e4dDA8a5367deCF76b94E7efFCe95).startExitWithBurntTokens(
-      burnProof
-    );
+    IERC20PredicateBurnOnly(ERC20_PREDICATE_BURN).startExitWithBurntTokens(burnProof);
     emit ConfirmExit(burnProof);
   }
 

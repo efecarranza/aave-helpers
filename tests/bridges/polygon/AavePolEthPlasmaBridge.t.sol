@@ -45,7 +45,7 @@ contract BridgeTest is AavePolEthPlasmaBridgeTest {
   function test_revertsIf_invalidChain() public {
     vm.selectFork(mainnetFork);
 
-    vm.expectRevert(AavePolEthPlasmaBridge.InvalidChain.selector);
+    vm.expectRevert(IAavePolEthPlasmaBridge.InvalidChain.selector);
     bridgePolygon.bridge(AaveV3EthereumAssets.USDC_UNDERLYING, 1_000e6);
   }
 
@@ -101,7 +101,7 @@ contract WithdrawToCollectorTest is AavePolEthPlasmaBridgeTest {
   function test_revertsIf_invalidChain() public {
     vm.selectFork(polygonFork);
 
-    vm.expectRevert(AavePolEthPlasmaBridge.InvalidChain.selector);
+    vm.expectRevert(IAavePolEthPlasmaBridge.InvalidChain.selector);
     bridgeMainnet.withdrawToCollector(AaveV3EthereumAssets.USDC_UNDERLYING);
   }
 
@@ -187,7 +187,7 @@ contract ExitTest is AavePolEthPlasmaBridgeTest {
   function test_revertsIf_invalidChain() public {
     vm.selectFork(polygonFork);
 
-    vm.expectRevert(AavePolEthPlasmaBridge.InvalidChain.selector);
+    vm.expectRevert(IAavePolEthPlasmaBridge.InvalidChain.selector);
     bridgeMainnet.confirmExit(new bytes(0));
   }
 

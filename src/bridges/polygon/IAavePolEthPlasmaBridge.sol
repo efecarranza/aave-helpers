@@ -3,6 +3,24 @@
 pragma solidity ^0.8.0;
 
 interface IAavePolEthPlasmaBridge {
+  /// @dev The called method is not available on this chain
+  error InvalidChain();
+
+  /// @dev Emitted when a bridge is initiated
+  event Bridge(address token, uint256 amount);
+
+  /// @dev Emitted when the bridge transaction is confirmed
+  event ConfirmExit(bytes proof);
+
+  /// @dev Emitted when a token bridge is finalized
+  event Exit(address indexed token);
+
+  /// @dev Emitted when multiple token bridges are finalized
+  event ExitBatch(address[] indexed tokens);
+
+  /// @dev Emitted when token is withdrawn to the Aave Collector
+  event WithdrawToCollector(address token, uint256 amount);
+
   /// This function withdraws an ERC20 token from Polygon to Mainnet. exit() needs
   /// to be called on mainnet with the corresponding burnProof in order to complete.
   /// @notice Polygon only. Function will revert if called from other network.
