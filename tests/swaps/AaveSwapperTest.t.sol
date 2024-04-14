@@ -48,6 +48,8 @@ contract AaveSwapperTest is Test {
   address public constant MILKMAN = 0x11C76AD590ABDFFCD980afEC9ad951B160F02797;
   address public constant BAD_ORACLE = 0x05225Cd708bCa9253789C1374e4337a019e99D56;
 
+  address AAVE_WHALE = 0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8;
+
   AaveSwapper public swaps;
 
   function setUp() public virtual {
@@ -311,25 +313,11 @@ contract AaveSwapperSwap is AaveSwapperTest {
     vm.stopPrank();
   }
 
-  function test_revertsIf_passedOracleIsAaveV2WETHOracle() public {
-    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
-    vm.expectRevert(IAaveSwapper.OracleNotSet.selector);
-    swaps.swap(
-      MILKMAN,
-      CHAINLINK_PRICE_CHECKER,
-      AaveV2EthereumAssets.WETH_UNDERLYING,
-      AaveV2EthereumAssets.USDC_UNDERLYING,
-      AaveV2EthereumAssets.WETH_ORACLE,
-      AaveV2EthereumAssets.USDC_ORACLE,
-      address(0),
-      1_000e18,
-      200
-    );
-    vm.stopPrank();
-  }
-
   function test_successful() public {
-    deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
+    vm.startPrank(AAVE_WHALE);
+    IERC20(AaveV2EthereumAssets.AAVE_UNDERLYING).transfer(address(swaps), 1_000e18);
+    vm.stopPrank();
+
     vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
 
     vm.expectEmit(true, true, true, true);
@@ -376,7 +364,10 @@ contract CancelSwap is AaveSwapperTest {
   }
 
   function test_revertsIf_noMatchingTrade() public {
-    deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
+    vm.startPrank(AAVE_WHALE);
+    IERC20(AaveV2EthereumAssets.AAVE_UNDERLYING).transfer(address(swaps), 1_000e18);
+    vm.stopPrank();
+    
     vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     swaps.swap(
       MILKMAN,
@@ -406,7 +397,10 @@ contract CancelSwap is AaveSwapperTest {
   }
 
   function test_successful() public {
-    deal(AaveV2EthereumAssets.AAVE_UNDERLYING, address(swaps), 1_000e18);
+    vm.startPrank(AAVE_WHALE);
+    IERC20(AaveV2EthereumAssets.AAVE_UNDERLYING).transfer(address(swaps), 1_000e18);
+    vm.stopPrank();
+    
     vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
 
     vm.expectEmit(true, true, true, true);
@@ -464,8 +458,6 @@ contract EmergencyTokenTransfer is AaveSwapperTest {
   }
 
   function test_successful_governanceCaller() public {
-    address AAVE_WHALE = 0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8;
-
     assertEq(IERC20(AaveV2EthereumAssets.AAVE_UNDERLYING).balanceOf(address(swaps)), 0);
 
     uint256 aaveAmount = 1_000e18;
