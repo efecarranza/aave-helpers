@@ -9,13 +9,21 @@ import {GovernanceV3Ethereum} from 'aave-address-book/GovernanceV3Ethereum.sol';
 import {GovernanceV3Arbitrum} from 'aave-address-book/GovernanceV3Arbitrum.sol';
 
 import {AaveArbEthERC20Bridge} from '../../../src/bridges/arbitrum/AaveArbEthERC20Bridge.sol';
+import {IAaveArbEthERC20Bridge} from '../../../src/bridges/arbitrum/IAaveArbEthERC20Bridge.sol';
 
 /**
  * @dev Tests for AaveArbEthERC20Bridge
  */
 contract AaveArbEthERC20BridgeTest is Test {
-  event Exit();
   event Bridge(address token, uint256 amount);
+  event Exit(
+    address l2sender,
+    address to,
+    uint256 l2block,
+    uint256 l1block,
+    uint256 value,
+    bytes data
+  );
 
   AaveArbEthERC20Bridge bridgeMainnet;
   AaveArbEthERC20Bridge bridgeArbitrum;
@@ -43,7 +51,7 @@ contract BridgeTest is AaveArbEthERC20BridgeTest {
   function test_revertsIf_invalidChain() public {
     vm.selectFork(mainnetFork);
 
-    vm.expectRevert(AaveArbEthERC20Bridge.InvalidChain.selector);
+    vm.expectRevert(IAaveArbEthERC20Bridge.InvalidChain.selector);
     bridgeArbitrum.bridge(
       AaveV3ArbitrumAssets.USDC_UNDERLYING,
       AaveV3EthereumAssets.USDC_UNDERLYING,
@@ -76,7 +84,7 @@ contract BridgeTest is AaveArbEthERC20BridgeTest {
     vm.selectFork(arbitrumFork);
 
     bytes
-      memory mockedData = hex'2e567b36000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000f6fa1bc03108eb39ac2d359848250114a2f66577000000000000000000000000464c71f6c2f760dda6093dcb91c24c39e5d6e18c000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000037d900000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000';
+      memory mockedData = hex'2e567b36000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000035977fd5df87f8ce5846a3e1b9887eb85320a3d0000000000000000000000000464c71f6c2f760dda6093dcb91c24c39e5d6e18c000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000037d900000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000';
 
     uint256 amount = 1_000e6;
 
@@ -87,8 +95,7 @@ contract BridgeTest is AaveArbEthERC20BridgeTest {
     bridgeArbitrum.transferOwnership(GovernanceV3Arbitrum.EXECUTOR_LVL_1);
 
     vm.startPrank(GovernanceV3Arbitrum.EXECUTOR_LVL_1);
-    vm.expectEmit();
-    emit Bridge(AaveV3ArbitrumAssets.USDC_UNDERLYING, amount);
+    
 
     bytes4 SELECTOR = 0x928c169a; // sendTxToL1(address, bytes calldata)
     vm.mockCall(
@@ -96,6 +103,10 @@ contract BridgeTest is AaveArbEthERC20BridgeTest {
       abi.encodeWithSelector(SELECTOR, USDC_WHALE_MAINNET, mockedData),
       abi.encode(uint256(1))
     );
+
+    vm.expectEmit();
+    emit Bridge(AaveV3ArbitrumAssets.USDC_UNDERLYING, amount);
+
     bridgeArbitrum.bridge(
       AaveV3ArbitrumAssets.USDC_UNDERLYING,
       AaveV3EthereumAssets.USDC_UNDERLYING,
@@ -179,7 +190,7 @@ contract ExitTest is AaveArbEthERC20BridgeTest {
     proof[15] = bytes32(0xc0425084107ea9f7a4118f5ed1e3566cda4e90b550363fc804df1e52ed5f2386);
     proof[16] = bytes32(0xb43a6b28077d49f37d58c87aec0b51f7bce13b648143f3295385f3b3d5ac3b9b);
 
-    vm.expectRevert(AaveArbEthERC20Bridge.InvalidChain.selector);
+    vm.expectRevert(IAaveArbEthERC20Bridge.InvalidChain.selector);
     bridgeMainnet.exit(
       proof,
       101373,
@@ -224,6 +235,16 @@ contract ExitTest is AaveArbEthERC20BridgeTest {
     proof[14] = bytes32(0x0000000000000000000000000000000000000000000000000000000000000000);
     proof[15] = bytes32(0xc0425084107ea9f7a4118f5ed1e3566cda4e90b550363fc804df1e52ed5f2386);
     proof[16] = bytes32(0xb43a6b28077d49f37d58c87aec0b51f7bce13b648143f3295385f3b3d5ac3b9b);
+
+    vm.expectEmit();
+    emit Exit(
+      0x09e9222E96E7B4AE2a407B98d48e330053351EEe,
+      0xa3A7B6F88361F48403514059F1F16C8E78d60EeC,
+      162707774,
+      18843894,
+      0,
+      hex'2e567b36000000000000000000000000514910771af9ca656af840dff83e8264ecf986ca0000000000000000000000000e6bb71856c5c821d1b83f2c6a9a59a78d5e0712000000000000000000000000464c71f6c2f760dda6093dcb91c24c39e5d6e18c0000000000000000000000000000000000000000000000000031f025da53473500000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000003c7300000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000'
+    );
 
     bridgeMainnet.exit(
       proof,

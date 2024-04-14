@@ -56,6 +56,7 @@ interface IL2Gateway {
 contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
   using SafeERC20 for IERC20;
 
+  /// @inheritdoc IAaveArbEthERC20Bridge
   address public constant MAINNET_OUTBOX = 0x0B9857ae2D4A3DBe74ffE1d7DF045bb7F96E4840;
 
   /// @param _owner The owner of the contract upon deployment
@@ -105,7 +106,7 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
       data
     );
 
-    emit Exit();
+    emit Exit(l2sender, to, l2block, l1block, value, data);
   }
 
   /// @inheritdoc Rescuable
