@@ -6,12 +6,13 @@ import {IAaveOracle, IPool, IPoolAddressesProvider, IPoolDataProvider, IDefaultI
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {IERC20Metadata} from 'solidity-utils/contracts/oz-common/interfaces/IERC20Metadata.sol';
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
+import {ReserveConfiguration} from 'aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol';
+import {AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {IInitializableAdminUpgradeabilityProxy} from './interfaces/IInitializableAdminUpgradeabilityProxy.sol';
 import {ExtendedAggregatorV2V3Interface} from './interfaces/ExtendedAggregatorV2V3Interface.sol';
 import {ProxyHelpers} from './ProxyHelpers.sol';
 import {CommonTestBase, ReserveTokens} from './CommonTestBase.sol';
-import {ReserveConfiguration} from 'aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol';
-import {AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
+import {IDefaultInterestRateStrategyV2} from './dependencies/IDefaultInterestRateStrategyV2.sol';
 
 struct ReserveConfig {
   string symbol;
@@ -88,7 +89,12 @@ contract ProtocolV3TestBase is CommonTestBase {
     string memory beforeString = string(abi.encodePacked(reportName, '_before'));
     ReserveConfig[] memory configBefore = createConfigurationSnapshot(beforeString, pool);
 
+    uint256 startGas = gasleft();
+
     executePayload(vm, payload);
+
+    uint256 gasUsed = startGas - gasleft();
+    assertLt(gasUsed, block.gaslimit, 'BLOCK_GAS_LIMIT_EXCEEDED');
 
     string memory afterString = string(abi.encodePacked(reportName, '_after'));
     ReserveConfig[] memory configAfter = createConfigurationSnapshot(afterString, pool);
@@ -107,12 +113,14 @@ contract ProtocolV3TestBase is CommonTestBase {
   ) public view {
     uint256 configsBeforeLength = configBefore.length;
     for (uint256 i = 0; i < configAfter.length; i++) {
-      // assets are ususally not permanently unlisted, so the expectation is there will only be addition
+      // assets are usually not permanently unlisted, so the expectation is there will only be addition
       // if config existed before
       if (i < configsBeforeLength) {
         // borrow increase should only happen on assets with borrowing enabled
         // unless it is setting a borrow cap for the first time
-        if (configBefore[i].borrowCap < configAfter[i].borrowCap && configBefore[i].borrowCap != 0) {
+        if (
+          configBefore[i].borrowCap < configAfter[i].borrowCap && configBefore[i].borrowCap != 0
+        ) {
           require(configAfter[i].borrowingEnabled, 'PL_BORROW_CAP_BORROW_DISABLED');
         }
       } else {
@@ -127,7 +135,7 @@ contract ProtocolV3TestBase is CommonTestBase {
       // borrow cap should never exceed supply cap
       if (
         configAfter[i].borrowCap != 0 &&
-        configAfter[i].underlying != AaveV3EthereumAssets.GHO_UNDERLYING // GHO is the exlcusion from the rule
+        configAfter[i].underlying != AaveV3EthereumAssets.GHO_UNDERLYING // GHO is the exclusion from the rule
       ) {
         console.log(configAfter[i].underlying);
         require(configAfter[i].borrowCap <= configAfter[i].supplyCap, 'PL_SUPPLY_LT_BORROW');
@@ -138,7 +146,7 @@ contract ProtocolV3TestBase is CommonTestBase {
   /**
    * @dev Generates a markdown compatible snapshot of the whole pool configuration into `/reports`.
    * @param reportName filename suffix for the generated reports.
-   * @param pool the pool to be snapshotted
+   * @param pool the pool to be snapshot
    * @return ReserveConfig[] list of configs
    */
   function createConfigurationSnapshot(
@@ -178,7 +186,7 @@ contract ProtocolV3TestBase is CommonTestBase {
    */
   function e2eTest(IPool pool) public {
     ReserveConfig[] memory configs = _getReservesConfigs(pool);
-    ReserveConfig memory collateralConfig = _getGoodCollateral(pool, configs, 1000);
+    ReserveConfig memory collateralConfig = _getGoodCollateral(configs);
     uint256 snapshot = vm.snapshot();
     for (uint256 i; i < configs.length; i++) {
       if (_includeInE2e(configs[i])) {
@@ -203,15 +211,24 @@ contract ProtocolV3TestBase is CommonTestBase {
     address collateralSupplier = vm.addr(3);
     address testAssetSupplier = vm.addr(4);
     require(collateralConfig.usageAsCollateralEnabled, 'COLLATERAL_CONFIG_MUST_BE_COLLATERAL');
-    uint256 testAssetAmount = _getTokenAmountByDollarValue(pool, testAssetConfig, 100);
+    uint256 collateralAssetAmount = _getTokenAmountByDollarValue(pool, collateralConfig, 100000);
+    uint256 testAssetAmount = _getTokenAmountByDollarValue(pool, testAssetConfig, 1000);
+
+    // remove caps as they should not prevent testing
+    IPoolAddressesProvider addressesProvider = IPoolAddressesProvider(pool.ADDRESSES_PROVIDER());
+    IPoolConfigurator poolConfigurator = IPoolConfigurator(addressesProvider.getPoolConfigurator());
+    vm.startPrank(addressesProvider.getACLAdmin());
+    if (collateralConfig.supplyCap != 0)
+      poolConfigurator.setSupplyCap(collateralConfig.underlying, 0);
+    if (testAssetConfig.supplyCap != 0)
+      poolConfigurator.setSupplyCap(testAssetConfig.underlying, 0);
+    if (testAssetConfig.borrowCap != 0)
+      poolConfigurator.setBorrowCap(testAssetConfig.underlying, 0);
+    vm.stopPrank();
+
     // GHO is a special case as it cannot be supplied
     if (testAssetConfig.underlying == AaveV3EthereumAssets.GHO_UNDERLYING) {
-      _deposit(
-        collateralConfig,
-        pool,
-        collateralSupplier,
-        _getTokenAmountByDollarValue(pool, collateralConfig, 10000)
-      );
+      _deposit(collateralConfig, pool, collateralSupplier, collateralAssetAmount);
       uint256 snapshot = vm.snapshot();
       // test variable borrowing
       if (testAssetConfig.borrowingEnabled) {
@@ -224,19 +241,7 @@ contract ProtocolV3TestBase is CommonTestBase {
         }
       }
     } else {
-      if (
-        (testAssetConfig.supplyCap * 10 ** testAssetConfig.decimals) <
-        IERC20(testAssetConfig.aToken).totalSupply() + testAssetAmount
-      ) {
-        console.log('Skip: %s, supply cap fully utilized', testAssetConfig.symbol);
-        return;
-      }
-      _deposit(
-        collateralConfig,
-        pool,
-        collateralSupplier,
-        _getTokenAmountByDollarValue(pool, collateralConfig, 10000)
-      );
+      _deposit(collateralConfig, pool, collateralSupplier, collateralAssetAmount);
       _deposit(testAssetConfig, pool, testAssetSupplier, testAssetAmount);
       uint256 snapshot = vm.snapshot();
       // test withdrawal
@@ -305,10 +310,8 @@ contract ProtocolV3TestBase is CommonTestBase {
    * @dev returns a "good" collateral in the list that cannot be borrowed in stable mode
    */
   function _getGoodCollateral(
-    IPool pool,
-    ReserveConfig[] memory configs,
-    uint256 minSupplyCapDollarMargin
-  ) private view returns (ReserveConfig memory config) {
+    ReserveConfig[] memory configs
+  ) private pure returns (ReserveConfig memory config) {
     for (uint256 i = 0; i < configs.length; i++) {
       if (
         // not frozen etc
@@ -318,14 +321,7 @@ contract ProtocolV3TestBase is CommonTestBase {
         // not stable borrowable as this makes testing stable borrowing unnecessary hard to reason about
         !configs[i].stableBorrowRateEnabled &&
         // not isolated asset as we can only borrow stablecoins against it
-        configs[i].debtCeiling == 0 &&
-        // supply cap not yet reached
-        ((configs[i].supplyCap * 10 ** configs[i].decimals) >
-          IERC20(configs[i].aToken).totalSupply()) &&
-        (// supply cap margin big enough
-        (configs[i].supplyCap * 10 ** configs[i].decimals) -
-          IERC20(configs[i].aToken).totalSupply() >
-          _getTokenAmountByDollarValue(pool, configs[i], minSupplyCapDollarMargin))
+        configs[i].debtCeiling == 0
       ) return configs[i];
     }
     revert('ERROR: No usable collateral found');
@@ -419,6 +415,7 @@ contract ProtocolV3TestBase is CommonTestBase {
     // keys for json stringification
     string memory eModesKey = 'emodes';
     string memory content = '{}';
+    vm.serializeJson(eModesKey, '{}');
 
     uint256[] memory usedCategories = new uint256[](configs.length);
     for (uint256 i = 0; i < configs.length; i++) {
@@ -428,6 +425,7 @@ contract ProtocolV3TestBase is CommonTestBase {
           uint8(configs[i].eModeCategory)
         );
         string memory key = vm.toString(configs[i].eModeCategory);
+        vm.serializeJson(key, '{}');
         vm.serializeUint(key, 'eModeCategory', configs[i].eModeCategory);
         vm.serializeString(key, 'label', category.label);
         vm.serializeUint(key, 'ltv', category.ltv);
@@ -445,55 +443,87 @@ contract ProtocolV3TestBase is CommonTestBase {
     // keys for json stringification
     string memory strategiesKey = 'stategies';
     string memory content = '{}';
+    vm.serializeJson(strategiesKey, '{}');
 
-    address[] memory usedStrategies = new address[](configs.length);
     for (uint256 i = 0; i < configs.length; i++) {
-      if (!_isInAddressArray(usedStrategies, configs[i].interestRateStrategy)) {
-        usedStrategies[i] = configs[i].interestRateStrategy;
-        IDefaultInterestRateStrategy strategy = IDefaultInterestRateStrategy(
-          configs[i].interestRateStrategy
-        );
-        string memory key = vm.toString(address(strategy));
+      IDefaultInterestRateStrategyV2 strategyV2 = IDefaultInterestRateStrategyV2(
+        configs[i].interestRateStrategy
+      );
+      IDefaultInterestRateStrategy strategyV1 = IDefaultInterestRateStrategy(
+        configs[i].interestRateStrategy
+      );
+      address asset = configs[i].underlying;
+      string memory key = vm.toString(asset);
+      vm.serializeJson(key, '{}');
+      vm.serializeString(key, 'address', vm.toString(configs[i].interestRateStrategy));
+      string memory object;
+      try strategyV1.getVariableRateSlope1() {
         vm.serializeString(
           key,
           'baseStableBorrowRate',
-          vm.toString(strategy.getBaseStableBorrowRate())
+          vm.toString(strategyV1.getBaseStableBorrowRate())
         );
-        vm.serializeString(key, 'stableRateSlope1', vm.toString(strategy.getStableRateSlope1()));
-        vm.serializeString(key, 'stableRateSlope2', vm.toString(strategy.getStableRateSlope2()));
+        vm.serializeString(key, 'stableRateSlope1', vm.toString(strategyV1.getStableRateSlope1()));
+        vm.serializeString(key, 'stableRateSlope2', vm.toString(strategyV1.getStableRateSlope2()));
         vm.serializeString(
           key,
           'baseVariableBorrowRate',
-          vm.toString(strategy.getBaseVariableBorrowRate())
+          vm.toString(strategyV1.getBaseVariableBorrowRate())
         );
         vm.serializeString(
           key,
           'variableRateSlope1',
-          vm.toString(strategy.getVariableRateSlope1())
+          vm.toString(strategyV1.getVariableRateSlope1())
         );
         vm.serializeString(
           key,
           'variableRateSlope2',
-          vm.toString(strategy.getVariableRateSlope2())
+          vm.toString(strategyV1.getVariableRateSlope2())
         );
         vm.serializeString(
           key,
           'optimalStableToTotalDebtRatio',
-          vm.toString(strategy.OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO())
+          vm.toString(strategyV1.OPTIMAL_STABLE_TO_TOTAL_DEBT_RATIO())
         );
         vm.serializeString(
           key,
           'maxExcessStableToTotalDebtRatio',
-          vm.toString(strategy.MAX_EXCESS_STABLE_TO_TOTAL_DEBT_RATIO())
+          vm.toString(strategyV1.MAX_EXCESS_STABLE_TO_TOTAL_DEBT_RATIO())
         );
-        vm.serializeString(key, 'optimalUsageRatio', vm.toString(strategy.OPTIMAL_USAGE_RATIO()));
-        string memory object = vm.serializeString(
+        vm.serializeString(key, 'optimalUsageRatio', vm.toString(strategyV1.OPTIMAL_USAGE_RATIO()));
+        object = vm.serializeString(
           key,
           'maxExcessUsageRatio',
-          vm.toString(strategy.MAX_EXCESS_USAGE_RATIO())
+          vm.toString(strategyV1.MAX_EXCESS_USAGE_RATIO())
         );
-        content = vm.serializeString(strategiesKey, key, object);
+      } catch {
+        vm.serializeString(
+          key,
+          'baseVariableBorrowRate',
+          vm.toString(strategyV2.getBaseVariableBorrowRate(asset))
+        );
+        vm.serializeString(
+          key,
+          'variableRateSlope1',
+          vm.toString(strategyV2.getVariableRateSlope1(asset))
+        );
+        vm.serializeString(
+          key,
+          'variableRateSlope2',
+          vm.toString(strategyV2.getVariableRateSlope2(asset))
+        );
+        vm.serializeString(
+          key,
+          'maxVariableBorrowRate',
+          vm.toString(strategyV2.getMaxVariableBorrowRate(asset))
+        );
+        object = vm.serializeString(
+          key,
+          'optimalUsageRatio',
+          vm.toString(strategyV2.getOptimalUsageRatio(asset))
+        );
       }
+      content = vm.serializeString(strategiesKey, key, object);
     }
     string memory output = vm.serializeString('root', 'strategies', content);
     vm.writeJson(output, path);
@@ -507,6 +537,7 @@ contract ProtocolV3TestBase is CommonTestBase {
     // keys for json stringification
     string memory reservesKey = 'reserves';
     string memory content = '{}';
+    vm.serializeJson(reservesKey, '{}');
 
     IPoolAddressesProvider addressesProvider = IPoolAddressesProvider(pool.ADDRESSES_PROVIDER());
     IAaveOracle oracle = IAaveOracle(addressesProvider.getPriceOracle());
@@ -515,8 +546,10 @@ contract ProtocolV3TestBase is CommonTestBase {
       ExtendedAggregatorV2V3Interface assetOracle = ExtendedAggregatorV2V3Interface(
         oracle.getSourceOfAsset(config.underlying)
       );
+      DataTypes.ReserveData memory reserveData = pool.getReserveData(config.underlying);
 
       string memory key = vm.toString(config.underlying);
+      vm.serializeJson(key, '{}');
       vm.serializeString(key, 'symbol', config.symbol);
       vm.serializeUint(key, 'ltv', config.ltv);
       vm.serializeUint(key, 'liquidationThreshold', config.liquidationThreshold);
@@ -528,6 +561,10 @@ contract ProtocolV3TestBase is CommonTestBase {
       vm.serializeUint(key, 'supplyCap', config.supplyCap);
       vm.serializeUint(key, 'debtCeiling', config.debtCeiling);
       vm.serializeUint(key, 'eModeCategory', config.eModeCategory);
+      vm.serializeUint(key, 'liquidityIndex', reserveData.liquidityIndex);
+      vm.serializeUint(key, 'currentLiquidityRate', reserveData.currentLiquidityRate);
+      vm.serializeUint(key, 'variableBorrowIndex', reserveData.variableBorrowIndex);
+      vm.serializeUint(key, 'currentVariableBorrowRate', reserveData.currentVariableBorrowRate);
       vm.serializeBool(key, 'usageAsCollateralEnabled', config.usageAsCollateralEnabled);
       vm.serializeBool(key, 'borrowingEnabled', config.borrowingEnabled);
       vm.serializeBool(key, 'stableBorrowRateEnabled', config.stableBorrowRateEnabled);
@@ -899,6 +936,7 @@ contract ProtocolV3TestBase is CommonTestBase {
     );
   }
 
+  // TODO: deprecated, remove it later
   function _validateInterestRateStrategy(
     address interestRateStrategyAddress,
     address expectedStrategy,
@@ -948,6 +986,39 @@ contract ProtocolV3TestBase is CommonTestBase {
     );
     require(
       strategy.getVariableRateSlope2() == expectedStrategyValues.variableRateSlope2,
+      '_validateInterestRateStrategy() : INVALID_VARIABLE_SLOPE_2'
+    );
+  }
+
+  function _validateInterestRateStrategy(
+    address reserve,
+    address interestRateStrategyAddress,
+    address expectedStrategy,
+    IDefaultInterestRateStrategyV2.InterestRateDataRay memory expectedStrategyValues
+  ) internal view {
+    IDefaultInterestRateStrategyV2 strategy = IDefaultInterestRateStrategyV2(
+      interestRateStrategyAddress
+    );
+
+    require(
+      address(strategy) == expectedStrategy,
+      '_validateInterestRateStrategy() : INVALID_STRATEGY_ADDRESS'
+    );
+
+    require(
+      strategy.getOptimalUsageRatio(reserve) == expectedStrategyValues.optimalUsageRatio,
+      '_validateInterestRateStrategy() : INVALID_OPTIMAL_RATIO'
+    );
+    require(
+      strategy.getBaseVariableBorrowRate(reserve) == expectedStrategyValues.baseVariableBorrowRate,
+      '_validateInterestRateStrategy() : INVALID_BASE_VARIABLE_BORROW'
+    );
+    require(
+      strategy.getVariableRateSlope1(reserve) == expectedStrategyValues.variableRateSlope1,
+      '_validateInterestRateStrategy() : INVALID_VARIABLE_SLOPE_1'
+    );
+    require(
+      strategy.getVariableRateSlope2(reserve) == expectedStrategyValues.variableRateSlope2,
       '_validateInterestRateStrategy() : INVALID_VARIABLE_SLOPE_2'
     );
   }
