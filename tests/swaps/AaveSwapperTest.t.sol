@@ -65,13 +65,8 @@ contract AaveSwapperTest is Test {
 
   AaveSwapper public swaps;
 
-<<<<<<< HEAD
   function setUp() public virtual {
-    vm.createSelectFork(vm.rpcUrl('mainnet'), 17779177);
-=======
-  function setUp() public {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 19639073);
->>>>>>> origin/master
 
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     swaps = new AaveSwapper(COMPOSABLE_COW);
@@ -160,17 +155,10 @@ contract AaveSwapperSwap is AaveSwapperTest {
     swaps.swap(
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
-<<<<<<< HEAD
       AaveV3EthereumAssets.WETH_UNDERLYING,
       AaveV3EthereumAssets.AAVE_UNDERLYING,
       AaveV3EthereumAssets.WETH_ORACLE,
       AaveV3EthereumAssets.AAVE_ORACLE,
-=======
-      AaveV2EthereumAssets.WETH_UNDERLYING,
-      AaveV2EthereumAssets.AAVE_UNDERLYING,
-      address(0),
-      AaveV2EthereumAssets.AAVE_ORACLE,
->>>>>>> origin/master
       address(AaveV2Ethereum.COLLECTOR),
       0,
       200
@@ -185,15 +173,9 @@ contract AaveSwapperSwap is AaveSwapperTest {
       MILKMAN,
       CHAINLINK_PRICE_CHECKER,
       address(0),
-<<<<<<< HEAD
       AaveV3EthereumAssets.AAVE_UNDERLYING,
       AaveV3EthereumAssets.WETH_ORACLE,
       AaveV3EthereumAssets.AAVE_ORACLE,
-=======
-      AaveV2EthereumAssets.AAVE_UNDERLYING,
-      address(0),
-      AaveV2EthereumAssets.AAVE_ORACLE,
->>>>>>> origin/master
       address(AaveV2Ethereum.COLLECTOR),
       1_000e18,
       200
@@ -209,13 +191,8 @@ contract AaveSwapperSwap is AaveSwapperTest {
       CHAINLINK_PRICE_CHECKER,
       AaveV3EthereumAssets.WETH_UNDERLYING,
       address(0),
-<<<<<<< HEAD
       AaveV3EthereumAssets.WETH_ORACLE,
       AaveV3EthereumAssets.AAVE_ORACLE,
-=======
-      address(0),
-      AaveV2EthereumAssets.AAVE_ORACLE,
->>>>>>> origin/master
       address(AaveV2Ethereum.COLLECTOR),
       1_000e18,
       200
@@ -343,23 +320,6 @@ contract AaveSwapperSwap is AaveSwapperTest {
       badOracle,
       AaveV2EthereumAssets.USDC_ORACLE,
       address(AaveV3Ethereum.COLLECTOR),
-      1_000e18,
-      200
-    );
-    vm.stopPrank();
-  }
-
-  function test_revertsIf_passedOracleIsAaveV2WETHOracle() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
-    vm.expectRevert(AaveSwapper.OracleNotSet.selector);
-    swaps.swap(
-      MILKMAN,
-      CHAINLINK_PRICE_CHECKER,
-      AaveV2EthereumAssets.WETH_UNDERLYING,
-      AaveV2EthereumAssets.USDC_UNDERLYING,
-      AaveV2EthereumAssets.WETH_ORACLE,
-      AaveV2EthereumAssets.USDC_ORACLE,
-      address(0),
       1_000e18,
       200
     );
