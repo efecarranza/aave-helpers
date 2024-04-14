@@ -35,24 +35,28 @@
 | stableBorrowRateEnabled | true |
 | isBorrowableInIsolation | false |
 | interestRateStrategy | [0x24701A6368Ff6D2874d6b8cDadd461552B8A5283](https://etherscan.io/address/0x24701A6368Ff6D2874d6b8cDadd461552B8A5283) |
+| liquidityIndex | 1 |
+| variableBorrowIndex | 1 |
 | aTokenName | Aave Ethereum PSP |
 | aTokenSymbol | aEthPSP |
+| currentLiquidityRate | 0 % |
+| currentVariableBorrowRate | 0 % |
 | isPaused | false |
 | stableDebtTokenName | Aave Ethereum Stable Debt PSP |
 | stableDebtTokenSymbol | stableDebtEthPSP |
 | variableDebtTokenName | Aave Ethereum Variable Debt PSP |
 | variableDebtTokenSymbol | variableDebtEthPSP |
 | optimalUsageRatio | 45 % |
+| maxExcessStableToTotalDebtRatio | 80 % |
 | maxExcessUsageRatio | 55 % |
+| optimalStableToTotalDebtRatio | 20 % |
 | baseVariableBorrowRate | 0 % |
 | variableRateSlope1 | 7 % |
 | variableRateSlope2 | 300 % |
 | baseStableBorrowRate | 9 % |
 | stableRateSlope1 | 7 % |
 | stableRateSlope2 | 300 % |
-| optimalStableToTotalDebtRatio | 20 % |
-| maxExcessStableToTotalDebtRatio | 80 % |
-| interestRate | ![ir](/.assets/b5cb0fd07fde8594230045982589445fc02ace52.svg) |
+| interestRate | ![ir](/.assets/ddeae2567d40a416520f74f13958f299b9741660.svg) |
 
 
 ## Raw diff
@@ -69,6 +73,8 @@
         "aTokenSymbol": "aEthPSP",
         "borrowCap": 60000,
         "borrowingEnabled": true,
+        "currentLiquidityRate": 0,
+        "currentVariableBorrowRate": 0,
         "debtCeiling": 0,
         "decimals": 18,
         "eModeCategory": 0,
@@ -82,6 +88,7 @@
         "liquidationBonus": 10500,
         "liquidationProtocolFee": 1000,
         "liquidationThreshold": 8600,
+        "liquidityIndex": "1000000000000000000000000000",
         "ltv": 8250,
         "oracle": "0x72AFAECF99C9d9C8215fF44C77B94B99C28741e8",
         "oracleDecimals": 18,
@@ -97,10 +104,29 @@
         "symbol": "PSP",
         "underlying": "0xcAfE001067cDEF266AfB7Eb5A286dCFD277f3dE5",
         "usageAsCollateralEnabled": true,
+        "variableBorrowIndex": "1000000000000000000000000000",
         "variableDebtToken": "0x68e9f0aD4e6f8F5DB70F6923d4d6d5b225B83b16",
         "variableDebtTokenImpl": "0xaC725CB59D16C81061BDeA61041a8A5e73DA9EC6",
         "variableDebtTokenName": "Aave Ethereum Variable Debt PSP",
         "variableDebtTokenSymbol": "variableDebtEthPSP"
+      }
+    }
+  },
+  "strategies": {
+    "0xcAfE001067cDEF266AfB7Eb5A286dCFD277f3dE5": {
+      "from": null,
+      "to": {
+        "address": "0x24701A6368Ff6D2874d6b8cDadd461552B8A5283",
+        "baseStableBorrowRate": "90000000000000000000000000",
+        "baseVariableBorrowRate": 0,
+        "maxExcessStableToTotalDebtRatio": "800000000000000000000000000",
+        "maxExcessUsageRatio": "550000000000000000000000000",
+        "optimalStableToTotalDebtRatio": "200000000000000000000000000",
+        "optimalUsageRatio": "450000000000000000000000000",
+        "stableRateSlope1": "70000000000000000000000000",
+        "stableRateSlope2": "3000000000000000000000000000",
+        "variableRateSlope1": "70000000000000000000000000",
+        "variableRateSlope2": "3000000000000000000000000000"
       }
     }
   }

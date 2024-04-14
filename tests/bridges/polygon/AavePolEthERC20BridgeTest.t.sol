@@ -190,7 +190,12 @@ contract ReceiveEther is AavePolEthERC20BridgeTest {
     vm.selectFork(polygonFork);
 
     vm.expectRevert(AavePolEthERC20Bridge.InvalidChain.selector);
+<<<<<<< HEAD:tests/bridges/polygon/AavePolEthERC20BridgeTest.t.sol
     address(bridgePolygon).call{value: 1 ether}("");
+=======
+    (bool a, ) = address(bridgePolygon).call{value: 1 ether}('');
+    assertTrue(a);
+>>>>>>> origin/master:tests/bridges/AavePolEthERC20BridgeTest.t.sol
   }
 
   function test_successful_forwardsETH() public {
@@ -200,7 +205,12 @@ contract ReceiveEther is AavePolEthERC20BridgeTest {
 
     assertEq(address(bridgeMainnet).balance, 0);
 
+<<<<<<< HEAD:tests/bridges/polygon/AavePolEthERC20BridgeTest.t.sol
     address(bridgeMainnet).call{value: 1 ether}("");
+=======
+    (bool a, ) = address(bridgeMainnet).call{value: 1 ether}('');
+    assertTrue(a);
+>>>>>>> origin/master:tests/bridges/AavePolEthERC20BridgeTest.t.sol
 
     assertEq(balanceETHBefore + 1 ether, address(AaveV3Ethereum.COLLECTOR).balance);
     assertEq(address(bridgeMainnet).balance, 0);
