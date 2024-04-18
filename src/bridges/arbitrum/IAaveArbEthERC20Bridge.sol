@@ -43,7 +43,7 @@ interface IAaveArbEthERC20Bridge {
   /// @param proof[] Burn proof generated via API.
   /// @param index The index of the burn transaction.
   /// @param l2sender The address sending the transaction from the L2
-  /// @param to The address receiving the bridged funds
+  /// @param destinationGateway The L1 gateway address receiving the bridged funds
   /// @param l2block The block number of the transaction on the L2
   /// @param l1block The block number of the transaction on the L1
   /// @param l2timestamp The timestamp of the transaction on the L2
@@ -53,7 +53,7 @@ interface IAaveArbEthERC20Bridge {
     bytes32[] calldata proof,
     uint256 index,
     address l2sender,
-    address to,
+    address destinationGateway,
     uint256 l2block,
     uint256 l1block,
     uint256 l2timestamp,

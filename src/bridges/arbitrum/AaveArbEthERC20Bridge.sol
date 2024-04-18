@@ -85,7 +85,7 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
     bytes32[] calldata proof,
     uint256 index,
     address l2sender,
-    address to,
+    address destinationGateway,
     uint256 l2block,
     uint256 l1block,
     uint256 l2timestamp,
@@ -98,7 +98,7 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
       proof,
       index,
       l2sender,
-      to,
+      destinationGateway,
       l2block,
       l1block,
       l2timestamp,
@@ -106,7 +106,7 @@ contract AaveArbEthERC20Bridge is Ownable, Rescuable, IAaveArbEthERC20Bridge {
       data
     );
 
-    emit Exit(l2sender, to, l2block, l1block, value, data);
+    emit Exit(l2sender, destinationGateway, l2block, l1block, value, data);
   }
 
   /// @inheritdoc Rescuable
