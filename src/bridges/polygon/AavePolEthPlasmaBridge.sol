@@ -46,10 +46,10 @@ interface IWithdrawManager {
 contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   using SafeERC20 for IERC20;
 
-  /// @dev The mainnet address of the Predicate contract to confirm withdrawal
+  /// @inheritdoc IAavePolEthPlasmaBridge
   address public constant ERC20_PREDICATE_BURN = 0x158d5fa3Ef8e4dDA8a5367deCF76b94E7efFCe95;
 
-  /// @dev The mainnet address of the withdrawal contract to exit the bridge
+  /// @inheritdoc IAavePolEthPlasmaBridge
   address public constant WITHDRAW_MANAGER = 0x2A88696e0fFA76bAA1338F2C74497cC013495922;
 
   /// @param _owner The owner of the contract upon deployment

@@ -24,6 +24,12 @@ interface IAavePolEthPlasmaBridge {
   /// @dev Emitted when token is withdrawn to the Aave Collector
   event WithdrawToCollector(address token, uint256 amount);
 
+  /// @dev The mainnet address of the Predicate contract to confirm withdrawal
+  function ERC20_PREDICATE_BURN() external view returns (address);
+
+  /// @dev The mainnet address of the withdrawal contract to exit the bridge
+  function WITHDRAW_MANAGER() external view returns (address);
+
   /// This function withdraws an ERC20 token from Polygon to Mainnet. exit() needs
   /// to be called on mainnet with the corresponding burnProof in order to complete.
   /// @notice Polygon only. Function will revert if called from other network.
