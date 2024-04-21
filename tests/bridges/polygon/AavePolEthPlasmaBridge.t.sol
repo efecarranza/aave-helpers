@@ -46,7 +46,7 @@ contract BridgeTest is AavePolEthPlasmaBridgeTest {
     vm.selectFork(mainnetFork);
 
     vm.expectRevert(IAavePolEthPlasmaBridge.InvalidChain.selector);
-    bridgePolygon.bridge(AaveV3EthereumAssets.USDC_UNDERLYING, 1_000e6);
+    bridgePolygon.bridge(1_000e6);
   }
 
   function test_revertsIf_notOwner() public {
@@ -61,7 +61,7 @@ contract BridgeTest is AavePolEthPlasmaBridgeTest {
     bridgePolygon.transferOwnership(GovernanceV3Polygon.EXECUTOR_LVL_1);
 
     vm.expectRevert('Ownable: caller is not the owner');
-    bridgePolygon.bridge(NATIVE_MATIC, amount);
+    bridgePolygon.bridge(amount);
   }
 
   function test_successful() public {
@@ -76,7 +76,7 @@ contract BridgeTest is AavePolEthPlasmaBridgeTest {
     vm.startPrank(GovernanceV3Polygon.EXECUTOR_LVL_1);
     vm.expectEmit();
     emit Bridge(NATIVE_MATIC, amount);
-    bridgePolygon.bridge(NATIVE_MATIC, amount);
+    bridgePolygon.bridge(amount);
     vm.stopPrank();
   }
 }

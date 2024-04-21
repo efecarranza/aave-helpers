@@ -52,17 +52,23 @@ contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   /// @inheritdoc IAavePolEthPlasmaBridge
   address public constant WITHDRAW_MANAGER = 0x2A88696e0fFA76bAA1338F2C74497cC013495922;
 
+  /// @inheritdoc IAavePolEthPlasmaBridge
+  address public constant MATIC_MAINNET = 0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0;
+
+  /// @inheritdoc IAavePolEthPlasmaBridge
+  address public constant MATIC_POLYGON = 0x0000000000000000000000000000000000001010;
+
   /// @param _owner The owner of the contract upon deployment
   constructor(address _owner) {
     _transferOwnership(_owner);
   }
 
   /// @inheritdoc IAavePolEthPlasmaBridge
-  function bridge(address token, uint256 amount) external onlyOwner {
+  function bridge(uint256 amount) external onlyOwner {
     if (block.chainid != ChainIds.POLYGON) revert InvalidChain();
 
-    IERC20Polygon(token).withdraw{value: amount}(amount);
-    emit Bridge(token, amount);
+    IERC20Polygon(MATIC_POLYGON).withdraw{value: amount}(amount);
+    emit Bridge(MATIC_POLYGON, amount);
   }
 
   /// @inheritdoc IAavePolEthPlasmaBridge
@@ -74,11 +80,11 @@ contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   }
 
   /// @inheritdoc IAavePolEthPlasmaBridge
-  function exit(address token) external {
+  function exit() external {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
-    IWithdrawManager(WITHDRAW_MANAGER).processExits(token);
-    emit Exit(token);
+    IWithdrawManager(WITHDRAW_MANAGER).processExits(MATIC_MAINNET);
+    emit Exit(MATIC_MAINNET);
   }
 
   /// @inheritdoc IAavePolEthPlasmaBridge
