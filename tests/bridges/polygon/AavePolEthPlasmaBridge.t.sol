@@ -22,8 +22,9 @@ contract AavePolEthPlasmaBridgeTest is Test {
   event WithdrawToCollector(address token, uint256 amount);
 
   address public constant WHALE = 0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245;
-  address public constant USDC_WHALE_MAINNET = 0xcEe284F754E854890e311e3280b767F80797180d;
+  address public constant MATIC_WHALE_MAINNET = 0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908;
   address public constant NATIVE_MATIC = 0x0000000000000000000000000000000000001010;
+  address public constant MATIC_MAINNET = 0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0;
 
   AavePolEthPlasmaBridge bridgeMainnet;
   AavePolEthPlasmaBridge bridgePolygon;
@@ -102,7 +103,7 @@ contract WithdrawToCollectorTest is AavePolEthPlasmaBridgeTest {
     vm.selectFork(polygonFork);
 
     vm.expectRevert(IAavePolEthPlasmaBridge.InvalidChain.selector);
-    bridgeMainnet.withdrawToCollector(AaveV3EthereumAssets.USDC_UNDERLYING);
+    bridgeMainnet.withdrawToCollector();
   }
 
   function test_successful() public {
@@ -110,26 +111,26 @@ contract WithdrawToCollectorTest is AavePolEthPlasmaBridgeTest {
 
     uint256 amount = 1_000e6;
 
-    vm.startPrank(USDC_WHALE_MAINNET);
-    IERC20(AaveV3EthereumAssets.USDC_UNDERLYING).transfer(address(bridgeMainnet), amount);
+    vm.startPrank(0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908);
+    IERC20(MATIC_MAINNET).transfer(address(bridgeMainnet), amount);
     vm.stopPrank();
 
-    uint256 balanceCollectorBefore = IERC20(AaveV3EthereumAssets.USDC_UNDERLYING).balanceOf(
+    uint256 balanceCollectorBefore = IERC20(MATIC_MAINNET).balanceOf(
       address(AaveV3Ethereum.COLLECTOR)
     );
-    uint256 balanceBridgeBefore = IERC20(AaveV3EthereumAssets.USDC_UNDERLYING).balanceOf(
+    uint256 balanceBridgeBefore = IERC20(MATIC_MAINNET).balanceOf(
       address(bridgeMainnet)
     );
 
     assertEq(balanceBridgeBefore, amount);
 
-    bridgeMainnet.withdrawToCollector(AaveV3EthereumAssets.USDC_UNDERLYING);
+    bridgeMainnet.withdrawToCollector();
 
     assertEq(
-      IERC20(AaveV3EthereumAssets.USDC_UNDERLYING).balanceOf(address(AaveV3Ethereum.COLLECTOR)),
+      IERC20(MATIC_MAINNET).balanceOf(address(AaveV3Ethereum.COLLECTOR)),
       balanceCollectorBefore + amount
     );
-    assertEq(IERC20(AaveV3EthereumAssets.USDC_UNDERLYING).balanceOf(address(bridgeMainnet)), 0);
+    assertEq(IERC20(MATIC_MAINNET).balanceOf(address(bridgeMainnet)), 0);
   }
 }
 

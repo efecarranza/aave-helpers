@@ -52,8 +52,7 @@ interface IAavePolEthPlasmaBridge {
   /// @notice Mainnet only. Function will revert if called from other network.
   function exit() external;
 
-  /// Withdraws tokens on Mainnet contract to Aave V3 Collector.
+  /// Withdraws MATIC on Mainnet contract to Aave V3 Collector.
   /// @notice Mainnet only. Function will revert if called from other network.
-  /// @param token Mainnet address of token to withdraw to Collector
-  function withdrawToCollector(address token) external;
+  function withdrawToCollector() external;
 }

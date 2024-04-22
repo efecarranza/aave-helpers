@@ -88,13 +88,13 @@ contract AavePolEthPlasmaBridge is Ownable, Rescuable, IAavePolEthPlasmaBridge {
   }
 
   /// @inheritdoc IAavePolEthPlasmaBridge
-  function withdrawToCollector(address token) external {
+  function withdrawToCollector() external {
     if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
 
-    uint256 balance = IERC20(token).balanceOf(address(this));
+    uint256 balance = IERC20(MATIC_MAINNET).balanceOf(address(this));
 
-    IERC20(token).safeTransfer(address(AaveV3Ethereum.COLLECTOR), balance);
-    emit WithdrawToCollector(token, balance);
+    IERC20(MATIC_MAINNET).safeTransfer(address(AaveV3Ethereum.COLLECTOR), balance);
+    emit WithdrawToCollector(MATIC_MAINNET, balance);
   }
 
   /// @inheritdoc Rescuable
