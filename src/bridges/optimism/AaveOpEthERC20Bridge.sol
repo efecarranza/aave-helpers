@@ -19,7 +19,7 @@ import {IAaveOpEthERC20Bridge} from './IAaveOpEthERC20Bridge.sol';
 contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
   using SafeERC20 for IERC20;
 
-    address public constant L1_STANDARD_BRIDGE = 0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1;
+  address public constant L1_STANDARD_BRIDGE = 0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1;
   address public constant L2_STANDARD_BRIDGE = 0x4200000000000000000000000000000000000010;
 
   /// @param _owner The owner of the contract upon deployment
