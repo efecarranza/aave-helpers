@@ -5,7 +5,6 @@ import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
 import {OwnableWithGuardian} from 'solidity-utils/contracts/access-control/OwnableWithGuardian.sol';
 import {DataTypes} from './DataTypes.sol';
-import {IAaveOracle} from '@aave/core-v3/contracts/interfaces/IAaveOracle.sol';
 import {ICollector} from './ICollector.sol';
 import {IPool2, IPool3} from './ILendingPool.sol';
 import {AaveSwapper} from '../swaps/AaveSwapper.sol';
@@ -20,7 +19,6 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   AaveSwapper public constant SWAPPER = AaveSwapper(0x3ea64b1C0194524b48F9118462C8E9cd61a243c7);
   address public constant MILKMAN = 0x11C76AD590ABDFFCD980afEC9ad951B160F02797;
   address public constant PRICE_CHECKER = 0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c;
-  IAaveOracle private constant Oracle = IAaveOracle(0x54586bE62E3c3580375aE3723C145253060Ca0C2);
 
   mapping(address => bool) public transferApprovedReceiver;
   mapping(address => bool) public swapApprovedToken;
