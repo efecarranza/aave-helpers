@@ -11,6 +11,12 @@ import {AaveSwapper} from '../swaps/AaveSwapper.sol';
 import {AggregatorInterface} from './AggregatorInterface.sol';
 import {IFinanceSteward} from './IFinanceSteward.sol';
 
+/**
+ * @title FinanceSteward
+ * @author luigy-lemon  (Karpatkey)
+ * @author efecarranza  (Tokenlogic)
+ * @notice Helper contract that enables a Guardian to execute permissioned actions on the Aave Collector
+ */
 contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   IPool2 POOLV2 = IPool2(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9);
   IPool3 POOLV3 = IPool3(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2);
@@ -33,12 +39,14 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   /// Steward Actions
 
+  /// @inheritdoc IFinanceSteward
   function depositV3(address reserve, uint amount) external onlyOwnerOrGuardian {
     collector.transfer(IERC20(reserve), address(this), amount);
     IERC20(reserve).approve(address(POOLV3), amount);
     POOLV3.deposit(reserve, amount, address(collector), 0);
   }
 
+  /// @inheritdoc IFinanceSteward
   function migrateV2toV3(address reserve, uint amount) external onlyOwnerOrGuardian {
     require(amount > 0, 'Submit positive amount');
     DataTypes.ReserveDataV2 memory reserveData = POOLV2.getReserveData(reserve);
@@ -57,6 +65,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     POOLV3.deposit(reserve, balance, address(collector), 0);
   }
 
+  /// @inheritdoc IFinanceSteward
   function withdrawV2andSwap(
     address reserve,
     uint amount,
@@ -93,6 +102,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     );
   }
 
+  /// @inheritdoc IFinanceSteward
   function withdrawV3andSwap(
     address reserve,
     uint amount,
@@ -128,6 +138,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     );
   }
 
+  /// @inheritdoc IFinanceSteward
   function tokenSwap(
     address sellToken,
     uint256 amount,
@@ -157,16 +168,19 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   // Controlled Actions
 
+  /// @inheritdoc IFinanceSteward
   function approve(address token, address to, uint256 amount) external onlyOwnerOrGuardian {
     _validateTransfer(token, to, amount);
     collector.approve(IERC20(token), to, amount);
   }
 
+  /// @inheritdoc IFinanceSteward
   function transfer(address token, address to, uint256 amount) external onlyOwnerOrGuardian {
     _validateTransfer(token, to, amount);
     collector.transfer(IERC20(token), to, amount);
   }
 
+  /// @inheritdoc IFinanceSteward
   function createStream(
     address token,
     address to,
@@ -188,11 +202,13 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   /// DAO Actions
 
+  /// @inheritdoc IFinanceSteward
   function increaseBudget(address token, uint256 amount) external onlyOwner {
     uint currentBudget = tokenBudget[token];
     _updateBudget(token, currentBudget + amount);
   }
 
+  /// @inheritdoc IFinanceSteward
   function decreaseBudget(address token, uint256 amount) external onlyOwner {
     uint currentBudget = tokenBudget[token];
     if (amount > currentBudget) {
@@ -202,17 +218,23 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     }
   }
 
+  /// @inheritdoc IFinanceSteward
   function setSwappableToken(address token, address priceFeedUSD) external onlyOwner {
     swapApprovedToken[token] = true;
     priceOracle[token] = priceFeedUSD;
+    emit SwapApprovedToken(token, priceFeedUSD);
   }
 
+  /// @inheritdoc IFinanceSteward
   function setWhitelistedReceiver(address to) external onlyOwner {
     transferApprovedReceiver[to] = true;
+    emit ReceiverWhitelisted(to);
   }
 
+  /// @inheritdoc IFinanceSteward
   function setMinimumBalanceShield(address token, uint amount) external onlyOwner {
     minTokenBalance[token] = amount;
+    emit MinimumTokenBalanceUpdated(token, amount);
   }
 
   /// Logic
