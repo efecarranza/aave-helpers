@@ -23,7 +23,7 @@ function bridge(
   ) external;
 ```
 
-Callable on Arbitrum to withdraw ERC20 token. It withdraws `amount` of passed `token` to mainnet. The gateway address can be found either in the token's read methods where it's called `l1gateway()` or `gateway()`, depending on the token. You can also refer to the Arbitrum [docs](https://docs.arbitrum.io/devs-how-tos/bridge-tokens/how-to-bridge-tokens-standard) and the relevant [addresses](https://docs.arbitrum.io/for-devs/useful-addresses).
+Callable on Arbitrum to withdraw ERC20 token. It withdraws `amount` of passed `token` to mainnet. The gateway address can be found either in the token's read methods where it's called `l1gateway()` or `gateway()`, depending on the token. You can also refer to the Arbitrum [docs](https://docs.arbitrum.io/build-decentralized-apps/token-bridging/token-bridge-erc20#other-flavors-of-gateways) and the relevant [addresses](https://docs.arbitrum.io/build-decentralized-apps/reference/useful-addresses).
 
 ```
 function exit(
@@ -61,5 +61,24 @@ You can see the input data which was retrieved via the Aave CLI tool.
 
 ## Deployed Addresses
 
-Mainnet:
-Arbitrum:
+Mainnet: [0x0335ffa9af5ce05590d6c9a75b645470e07744a9](https://etherscan.io/address/0x0335ffa9af5ce05590d6c9a75b645470e07744a9)
+Arbitrum: [0x0335ffa9af5ce05590d6c9a75b645470e07744a9](https://arbiscan.io/address/0x0335ffa9af5ce05590d6c9a75b645470e07744a9)
+
+Confirmed Bridges:
+
+| Token            | Can Bridge | Burn                                                                                            | Exit   |
+| ---------------- | ---------- | ----------------------------------------------------------------------------------------------- | ------ |
+| USDC (Native)    | NO         | N/A                                                                                             | N/A    |
+| USDC.e (Bridged) | YES        | [Tx]()                                                                                          | [Tx]() |
+| WETH             | YES        | [Tx](https://arbiscan.io/tx/0xa466214026874d294dc1b2ec188ce29f44eda24917729841b96c9dbd53be3f4b) | [Tx]() |
+| WBTC             | YES        | [Tx](https://arbiscan.io/tx/0x3f05e30984c67b21a9bce4866336bf0da6f90a29a9346f1f121f5adeb773c3df) | [Tx]() |
+| wstETH           | NO         | N/A                                                                                             | N/A    |
+| DAI              | YES        | [Tx](https://arbiscan.io/tx/0x1ce3cf0f0e6dc01fc2e78105cd3c0a24b3d517cef83b8e54c8321cdd177381c6) | [Tx]() |
+| EURS             | NO         | N/A                                                                                             | N/A    |
+| AAVE             | YES        | [Tx]()                                                                                          | [Tx]() |
+| MAI              | YES        | [Tx]()                                                                                          | [Tx]() |
+| rETH             | YES        | [Tx]()                                                                                          | [Tx]() |
+| LUSD             | YES        | [Tx]()                                                                                          | [Tx]() |
+| FRAX             | YES        | [Tx]()                                                                                          | [Tx]() |
+| ARB              | YES        | [Tx]()                                                                                          | [Tx]() |
+| weETH            | YES        | [Tx]()                                                                                          | [Tx]() |
