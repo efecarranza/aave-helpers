@@ -10,6 +10,7 @@ import {AaveV3Ethereum} from 'aave-address-book/AaveV3Ethereum.sol';
 
 import {ChainIds} from '../../ChainIds.sol';
 import {IAaveOpEthERC20Bridge} from './IAaveOpEthERC20Bridge.sol';
+import {IStandardBridge} from './IStandardBridge.sol';
 
 /**
  * @title AaveOpEthERC20Bridge
@@ -27,8 +28,20 @@ contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
     _transferOwnership(_owner);
   }
 
-  function bridge() external onlyOwner {
+  function bridge(address token, address l1Token, uint256 amount) external onlyOwner {
     if (block.chainid != ChainIds.OPTIMISM) revert InvalidChain();
+
+    IERC20(token).forceApprove(L2_STANDARD_BRIDGE, amount);
+    IStandardBridge(L2_STANDARD_BRIDGE).bridgeERC20To(
+      token,
+      l1Token,
+      address(AaveV3Ethereum.COLLECTOR),
+      amount,
+      250000,
+      ''
+    );
+
+    emit Bridge(token, amount);
   }
 
   function confirmBridge() external {
