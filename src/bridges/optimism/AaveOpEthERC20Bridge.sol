@@ -20,7 +20,6 @@ import {IStandardBridge} from './IStandardBridge.sol';
 contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
   using SafeERC20 for IERC20;
 
-  address public constant L1_STANDARD_BRIDGE = 0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1;
   address public constant L2_STANDARD_BRIDGE = 0x4200000000000000000000000000000000000010;
 
   /// @param _owner The owner of the contract upon deployment
@@ -28,6 +27,7 @@ contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
     _transferOwnership(_owner);
   }
 
+  /// @inheritdoc IAaveOpEthERC20Bridge
   function bridge(address token, address l1Token, uint256 amount) external onlyOwner {
     if (block.chainid != ChainIds.OPTIMISM) revert InvalidChain();
 
@@ -42,14 +42,6 @@ contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
     );
 
     emit Bridge(token, amount);
-  }
-
-  function confirmBridge() external {
-    if (block.chainid != ChainIds.OPTIMISM) revert InvalidChain();
-  }
-
-  function exit() external {
-    if (block.chainid != ChainIds.MAINNET) revert InvalidChain();
   }
 
   /// @inheritdoc Rescuable
