@@ -66,19 +66,19 @@ Arbitrum: [0x0335ffa9af5ce05590d6c9a75b645470e07744a9](https://arbiscan.io/addre
 
 Confirmed Bridges:
 
-| Token            | Can Bridge | Burn                                                                                            | Exit   |
-| ---------------- | ---------- | ----------------------------------------------------------------------------------------------- | ------ |
-| USDC (Native)    | NO         | N/A                                                                                             | N/A    |
-| USDC.e (Bridged) | YES        | [Tx]()                                                                                          | [Tx]() |
-| WETH             | YES        | [Tx](https://arbiscan.io/tx/0xa466214026874d294dc1b2ec188ce29f44eda24917729841b96c9dbd53be3f4b) | [Tx]() |
-| WBTC             | YES        | [Tx](https://arbiscan.io/tx/0x3f05e30984c67b21a9bce4866336bf0da6f90a29a9346f1f121f5adeb773c3df) | [Tx]() |
-| wstETH           | NO         | N/A                                                                                             | N/A    |
-| DAI              | YES        | [Tx](https://arbiscan.io/tx/0x1ce3cf0f0e6dc01fc2e78105cd3c0a24b3d517cef83b8e54c8321cdd177381c6) | [Tx]() |
-| EURS             | NO         | N/A                                                                                             | N/A    |
-| AAVE             | YES        | [Tx]()                                                                                          | [Tx]() |
-| MAI              | YES        | [Tx]()                                                                                          | [Tx]() |
-| rETH             | YES        | [Tx]()                                                                                          | [Tx]() |
-| LUSD             | YES        | [Tx]()                                                                                          | [Tx]() |
-| FRAX             | YES        | [Tx]()                                                                                          | [Tx]() |
-| ARB              | YES        | [Tx]()                                                                                          | [Tx]() |
-| weETH            | YES        | [Tx]()                                                                                          | [Tx]() |
+| Token            | Can Bridge | Burn                                                                                            | Exit                                                                                             |
+| ---------------- | ---------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| USDC (Native)    | NO         | N/A                                                                                             | N/A                                                                                              |
+| USDC.e (Bridged) | YES        | [Tx](https://arbiscan.io/tx/0x4d64e1200e55d745428af2ad57af72c345dd47e736227b8ad1fefc9a6dde0bbe) | [Tx](https://etherscan.io/tx/0x43f861ded0892ea3f67bba45b331d3fc816546d1a6a4de59dce455d37d15c2e3) |
+| WETH             | YES        | [Tx](https://arbiscan.io/tx/0xa466214026874d294dc1b2ec188ce29f44eda24917729841b96c9dbd53be3f4b) | [Tx](https://etherscan.io/tx/0x082ac47de76e638afd89f0c0dc9dd6a79f0bec61daa5f9280842fbfd583d18e5) |
+| WBTC             | YES        | [Tx](https://arbiscan.io/tx/0x3f05e30984c67b21a9bce4866336bf0da6f90a29a9346f1f121f5adeb773c3df) | [Tx](https://etherscan.io/tx/0x0e8875142024a5243d48262b12df051eec32c04d5bf9512b0f92c7c8e27cecb8) |
+| wstETH           | NO         | N/A                                                                                             | N/A                                                                                              |
+| DAI              | YES        | [Tx](https://arbiscan.io/tx/0x1ce3cf0f0e6dc01fc2e78105cd3c0a24b3d517cef83b8e54c8321cdd177381c6) | [Tx](https://etherscan.io/tx/0xb2901150d654c2751d9624afbaf70386d38415d47e8b4fee512c09ea7503e38f) |
+| EURS             | NO         | N/A                                                                                             | N/A                                                                                              |
+| AAVE             | YES        | [Tx]()                                                                                          | [Tx]()                                                                                           |
+| MAI              | YES        | [Tx]()                                                                                          | [Tx]()                                                                                           |
+| rETH             | YES        | [Tx]()                                                                                          | [Tx]()                                                                                           |
+| LUSD             | YES        | [Tx]()                                                                                          | [Tx]()                                                                                           |
+| FRAX             | YES        | [Tx]()                                                                                          | [Tx]()                                                                                           |
+| ARB              | YES        | [Tx]()                                                                                          | [Tx]()                                                                                           |
+| weETH            | YES        | [Tx]()                                                                                          | [Tx]()                                                                                           |
