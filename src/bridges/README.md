@@ -62,6 +62,32 @@ Callable on Polygon. Withdraws tokens from bridge contract back to Aave Collecto
 
 Function to receive Ether and forward it to Aave Collector. If not mainnet, it will revert.
 
+# Matic Plasma Bridge
+
+The Plasma bridge is utilized to transfer MATIC (the native token) from Polygon to Mainnet. Exits on the Plasma bridge only take up to 10 logs per transaction, therefore, DO NOT do multiple withdrawals on the same transaction via Matic. The more straightforward path is to just send Matic to the bridge and call the `bridge()` function in the transaction so that the proof is not polluted with multiple events.
+
+Unlike the ERC20 bridge, the Plasma bridge takes 3 steps to complete instead of two.
+
+The first step is still via:
+
+`function bridge(address token, uint256 amount) external;`
+
+Callable on Polygon to withdraw ERC20 token. It withdraws `amount` of passed `token` to mainnet.
+
+The second step is:
+
+`function confirmExit(bytes calldata burnProof) external;`
+
+Callable on Mainnet. This step confirms a withdrawal after 30-90 minutes with the generate proof.
+
+The last step is:
+
+`function exit(address token) external;`
+
+Callable on Mainnet. After 2 checkpoints have happend and after the second step, this function will be callable to withraw the tokens from Polygon to this contract.
+
+The other functions are the same.
+
 ## Burn Proof Generation
 
 After you have called `bridge()` Polygon, it will take 30-90 minutes for a checkpoint to happen. Once the next checkpoint includes the burn transaction, you can withdraw the tokens on Mainnet.
@@ -86,7 +112,19 @@ The result is the bytes data that is later passed to `exit()`.
 If doing multiple burns in one transaction, each proof has to be generated individually. To get a specific logIndex to generate the correct proof when doing multiple, you can append to the API URL `&tokenIndex=[INDEX_OF_TARGET_LOG]`. The Index of the target log is the # of the `Transfer()` function, with a 0 based index. A sample transaction with multiple burns can be seen [here.](https://polygonscan.com/tx/0xc73b85175045e272161abe38b25eac76546eea20247d0947926d7ef4e901b567#eventlog)
 An array of proofs can be passed to the `exit(bytes[] memory proofs)` function to do all withdrawals in a single transaction instead of the regular `exit(bytes memory proof)` method, on the Mainnet contract.
 
+For the Plasma bridge: the event signature is on the `Withdraw` event: 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f
+An example TX can be found here: https://polygonscan.com/tx/0xaab513e06a1771372479e787c0d66c0503b95d808a67711494cac6d94d411c7d#eventlog
+And the generated proof: https://proof-generator.polygon.technology/api/v1/matic/exit-payload/0xaab513e06a1771372479e787c0d66c0503b95d808a67711494cac6d94d411c7d?eventSignature=0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f
+
+Confirmed Exit TX: https://etherscan.io/tx/0xaee07d5bad06e2da935b915a04fce37141e8a96082ea3154cfa7caae151f236c
+Processed Exit: https://etherscan.io/tx/0x1504031ba4dd8b4b24585ab7b9f3e6ec2c1842d49f98d5e640c4f6c0028823e6
+
 ## Deployed Addresses
 
+ERC20
 Mainnet: [0x1C2BA5b8ab8e795fF44387ba6d251fa65AD20b36](https://etherscan.io/address/0x1C2BA5b8ab8e795fF44387ba6d251fa65AD20b36)
 Polygon: [0x1C2BA5b8ab8e795fF44387ba6d251fa65AD20b36](https://polygonscan.com/address/0x1C2BA5b8ab8e795fF44387ba6d251fa65AD20b36)
+
+Plasma
+Mainnet: [](https://etherscan.io/address/)
+Polygon: [](https://polygonscan.com/address/)
