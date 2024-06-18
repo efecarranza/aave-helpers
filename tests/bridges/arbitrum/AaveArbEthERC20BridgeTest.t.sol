@@ -10,6 +10,7 @@ import {GovernanceV3Arbitrum} from 'aave-address-book/GovernanceV3Arbitrum.sol';
 
 import {AaveArbEthERC20Bridge} from '../../../src/bridges/arbitrum/AaveArbEthERC20Bridge.sol';
 import {IAaveArbEthERC20Bridge} from '../../../src/bridges/arbitrum/IAaveArbEthERC20Bridge.sol';
+import {ArbSysMock} from './ArbSysMock.sol';
 
 /**
  * @dev Tests for AaveArbEthERC20Bridge
@@ -83,9 +84,6 @@ contract BridgeTest is AaveArbEthERC20BridgeTest {
   function test_successful_arbitrumBridge() public {
     vm.selectFork(arbitrumFork);
 
-    bytes
-      memory mockedData = hex'2e567b36000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480000000000000000000000008c03ff3d873e2ab4587906b5aa64aed100d069ac000000000000000000000000464c71f6c2f760dda6093dcb91c24c39e5d6e18c000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000037d900000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000';
-
     uint256 amount = 1_000e6;
 
     vm.startPrank(USDC_WHALE);
@@ -97,12 +95,8 @@ contract BridgeTest is AaveArbEthERC20BridgeTest {
     vm.startPrank(GovernanceV3Arbitrum.EXECUTOR_LVL_1);
     
 
-    bytes4 SELECTOR = 0x928c169a; // sendTxToL1(address, bytes calldata)
-    vm.mockCall(
-      ARB_SYS,
-      abi.encodeWithSelector(SELECTOR, USDC_WHALE_MAINNET, mockedData),
-      abi.encode(uint256(1))
-    );
+    ArbSysMock arbsys = new ArbSysMock();
+        vm.etch(address(0x0000000000000000000000000000000000000064), address(arbsys).code);
 
     vm.expectEmit();
     emit Bridge(AaveV3ArbitrumAssets.USDC_UNDERLYING, amount);
