@@ -40,7 +40,7 @@ contract DeployPlasmaPolygon is PolygonScript {
   }
 }
 
-contract DeployOptimismi is OptimismScript {
+contract DeployOptimism is OptimismScript {
   function run() external broadcast {
     bytes32 salt = 'Aave Treasury Optimism Bridge';
     new AaveOpEthERC20Bridge{salt: salt}(0x3765A685a401622C060E5D700D9ad89413363a91);
