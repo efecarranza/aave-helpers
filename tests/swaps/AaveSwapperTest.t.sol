@@ -65,8 +65,8 @@ contract AaveSwapperTest is Test {
 
   AaveSwapper public swaps;
 
-  function setUp() public virtual {
-    vm.createSelectFork(vm.rpcUrl('mainnet'), 19639073);
+  function setUp() public {
+    vm.createSelectFork(vm.rpcUrl('mainnet'), 19733176);
 
     vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
     swaps = new AaveSwapper(COMPOSABLE_COW);
@@ -539,8 +539,8 @@ contract GetExpectedOut is AaveSwapperTest {
       AaveV2EthereumAssets.USDC_ORACLE
     );
 
-    // April 12, 2024 AAVE/USD is around $118.50
-    assertEq(expected / 1e4, 11850); // USDC is 6 decimals
+    // April 25, 2024 AAVE/USD is around $90
+    assertEq(expected / 1e4, 8941); // USDC is 6 decimals
   }
 
   function test_aaveToUsdc() public {
@@ -554,8 +554,8 @@ contract GetExpectedOut is AaveSwapperTest {
       AaveV3EthereumAssets.USDC_ORACLE
     );
 
-    // April 12, 2024 AAVE/USD is around $118.05
-    assertEq(expected / 1e4, 11805); // USDC is 6 decimals
+    // April 25, 2024 AAVE/USD is around $90
+    assertEq(expected / 1e4, 9002); // USDC is 6 decimals
   }
 
   function test_ethToDai() public {
@@ -569,8 +569,8 @@ contract GetExpectedOut is AaveSwapperTest {
       AaveV3EthereumAssets.DAI_ORACLE
     );
 
-    // April 12, 2024 ETH/USD is around $3,529
-    assertEq(expected / 1e18, 3529); // WETH is 18 decimals
+    // April 25, 2024 ETH/USD is around $3,122
+    assertEq(expected / 1e18, 3122); // WETH is 18 decimals
   }
 
   function test_ethToBal() public {
@@ -584,8 +584,8 @@ contract GetExpectedOut is AaveSwapperTest {
       AaveV3EthereumAssets.BAL_ORACLE
     );
 
-    // April 12, 2024 ETH/BAL is 1 ETH is around 731 BAL tokens
-    assertEq(expected / 1e18, 731); // WETH and BAL are 18 decimals
+    // April 25, 2024 ETH/BAL is 1 ETH is around 823 BAL tokens
+    assertEq(expected / 1e18, 823); // WETH and BAL are 18 decimals
   }
 
   function test_balTo80BAL20WETH() public {
@@ -599,8 +599,8 @@ contract GetExpectedOut is AaveSwapperTest {
       address(0)
     );
 
-    // April 12, 2024 BAL/USD should be around 0.31 at 100 units traded, 31 units expected.
-    assertEq(expected / 1e18, 31); // WETH and BAL are 18 decimals
+    // April 25, 2024 BAL/USD should be around 0.30 at 100 units traded, 30 units expected.
+    assertEq(expected / 1e18, 30); // WETH and BAL are 18 decimals
   }
 }
 
