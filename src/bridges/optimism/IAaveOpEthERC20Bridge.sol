@@ -7,7 +7,7 @@ interface IAaveOpEthERC20Bridge {
   error InvalidChain();
 
   /// @notice Emitted when bridging a token from Optimism to Mainnet
-  event Bridge(address indexed token, uint256 amount);
+  event Bridge(address indexed token, address indexed l1token, uint256 amount, address to);
 
   /// @notice Returns the Optimism Standard Bridge Address
   /// @return Address of bridge

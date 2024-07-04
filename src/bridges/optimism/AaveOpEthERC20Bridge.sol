@@ -41,7 +41,7 @@ contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
       ''
     );
 
-    emit Bridge(token, amount);
+    emit Bridge(token, l1Token, amount, address(AaveV3Ethereum.COLLECTOR));
   }
 
   /// @inheritdoc Rescuable

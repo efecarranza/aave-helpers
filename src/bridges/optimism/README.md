@@ -2,6 +2,8 @@
 
 Currently there is no easy way for the Collector on Optimism to withdraw funds via bridging to Ethereum mainnet. An upgrade to the Collector to be made to bridge directly, however, with this approach, we can assign a Guardian the role to bridge as is done with other networks such as Polygon and Arbitrum.
 
+The official Optimism documentation can be found [here](https://docs.optimism.io/builders/app-developers/bridging/standard-bridge).
+
 ## Functions
 
 `function bridge(address token, address l1Token, uint256 amount) external onlyOwner`

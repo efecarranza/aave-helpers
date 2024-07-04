@@ -12,7 +12,7 @@ import {AaveOpEthERC20Bridge} from 'src/bridges/optimism/AaveOpEthERC20Bridge.so
 import {IAaveOpEthERC20Bridge} from 'src/bridges/optimism/IAaveOpEthERC20Bridge.sol';
 
 contract AavePolEthPlasmaBridgeTest is Test {
-  event Bridge(address indexed token, uint256 amount);
+  event Bridge(address indexed token, address indexed l1token, uint256 amount, address to);
 
   address public constant WHALE = 0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245;
 
@@ -56,7 +56,7 @@ contract BridgeTest is AavePolEthPlasmaBridgeTest {
 
     vm.startPrank(GovernanceV3Optimism.EXECUTOR_LVL_1);
     vm.expectEmit();
-    emit Bridge(AaveV3OptimismAssets.USDC_UNDERLYING, amount);
+    emit Bridge(AaveV3OptimismAssets.USDC_UNDERLYING, AaveV3EthereumAssets.USDC_UNDERLYING, amount, address(AaveV3Ethereum.COLLECTOR));
     bridge.bridge(AaveV3OptimismAssets.USDC_UNDERLYING, AaveV3EthereumAssets.USDC_UNDERLYING, 1_000e6);
     vm.stopPrank();
   }
