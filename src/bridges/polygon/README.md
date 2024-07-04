@@ -89,3 +89,7 @@ If doing multiple burns in one transaction, each has to be processed individuall
 
 Mainnet: [0x1C2BA5b8ab8e795fF44387ba6d251fa65AD20b36](https://etherscan.io/address/0x1C2BA5b8ab8e795fF44387ba6d251fa65AD20b36)
 Polygon: [0x1C2BA5b8ab8e795fF44387ba6d251fa65AD20b36](https://polygonscan.com/address/0x1C2BA5b8ab8e795fF44387ba6d251fa65AD20b36)
+
+Plasma
+Mainnet: [0xc980508cC8866f726040Da1C0C61f682e74aBc39](https://etherscan.io/address/0xc980508cC8866f726040Da1C0C61f682e74aBc39)
+Polygon: [0xc980508cC8866f726040Da1C0C61f682e74aBc39](https://polygonscan.com/address/0xc980508cC8866f726040Da1C0C61f682e74aBc39)
