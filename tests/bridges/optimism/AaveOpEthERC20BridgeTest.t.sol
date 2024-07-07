@@ -12,7 +12,7 @@ import {AaveOpEthERC20Bridge} from 'src/bridges/optimism/AaveOpEthERC20Bridge.so
 import {IAaveOpEthERC20Bridge} from 'src/bridges/optimism/IAaveOpEthERC20Bridge.sol';
 
 contract AavePolEthPlasmaBridgeTest is Test {
-  event Bridge(address indexed token, address indexed l1token, uint256 amount, address to);
+  event Bridge(address indexed token, address indexed l1token, uint256 amount, address indexed to);
 
   address public constant WHALE = 0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245;
 
