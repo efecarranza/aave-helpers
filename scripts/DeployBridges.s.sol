@@ -9,7 +9,7 @@ import {GovernanceV3Polygon} from 'aave-address-book/GovernanceV3Polygon.sol';
 
 import {ArbitrumScript, EthereumScript, OptimismScript, PolygonScript} from 'src/ScriptUtils.sol';
 import {AaveArbEthERC20Bridge} from 'src/bridges/arbitrum/AaveArbEthERC20Bridge.sol';
-import {AavePolEthERC20Bridge} from 'src/bridges/AavePolEthERC20Bridge.sol';
+import {AavePolEthERC20Bridge} from 'src/bridges/polygon/AavePolEthERC20Bridge.sol';
 import {AavePolEthPlasmaBridge} from 'src/bridges/polygon/AavePolEthPlasmaBridge.sol';
 import {AaveOpEthERC20Bridge} from 'src/bridges/optimism/AaveOpEthERC20Bridge.sol';
 
