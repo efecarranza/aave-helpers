@@ -13,7 +13,7 @@ The first parameter is the token's address on Optimism, while the second one is 
 
 `function emergencyTokenTransfer(address erc20Token, address to, uint256 amount) external;`
 
-Callable on Optimism. Withdraws tokens from bridge contract back to Aave Collector on Optimism.
+Callable on Optimism. In case of emergency can be called by the owner to withdraw tokens from bridge contract back to any address on Optimism.
 
 ## Proving The Message
 
