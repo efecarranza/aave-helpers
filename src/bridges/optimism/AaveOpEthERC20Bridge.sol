@@ -21,6 +21,7 @@ contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
   using SafeERC20 for IERC20;
 
   address public constant L2_STANDARD_BRIDGE = 0x4200000000000000000000000000000000000010;
+  uint256 private _nonce;
 
   /// @param _owner The owner of the contract upon deployment
   constructor(address _owner) {
@@ -38,10 +39,17 @@ contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
       address(AaveV3Ethereum.COLLECTOR),
       amount,
       250000,
-      ''
+      abi.encodePacked(_nonce)
     );
 
-    emit Bridge(token, l1Token, amount, address(AaveV3Ethereum.COLLECTOR));
+    emit Bridge(token, l1Token, amount, address(AaveV3Ethereum.COLLECTOR), _nonce);
+
+    _nonce++;
+  }
+
+  /// @inheritdoc IAaveOpEthERC20Bridge
+  function nonce() external view returns (uint256) {
+    return _nonce;
   }
 
   /// @inheritdoc Rescuable
