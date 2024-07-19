@@ -42,9 +42,7 @@ contract AaveOpEthERC20Bridge is Ownable, Rescuable, IAaveOpEthERC20Bridge {
       abi.encodePacked(_nonce)
     );
 
-    emit Bridge(token, l1Token, amount, address(AaveV3Ethereum.COLLECTOR), _nonce);
-
-    _nonce++;
+    emit Bridge(token, l1Token, amount, address(AaveV3Ethereum.COLLECTOR), _nonce++);
   }
 
   /// @inheritdoc IAaveOpEthERC20Bridge
