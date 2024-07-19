@@ -78,7 +78,7 @@ contract TransferOwnership is AaveOpEthERC20BridgeTest {
   }
 }
 
-contract EmergencyTokenTransfer is AavePolEthPlasmaBridgeTest {
+contract EmergencyTokenTransfer is AaveOpEthERC20BridgeTest {
   function test_revertsIf_invalidCaller() public {
     vm.expectRevert('ONLY_RESCUE_GUARDIAN');
     vm.startPrank(makeAddr('random-caller'));
