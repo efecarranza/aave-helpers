@@ -62,7 +62,7 @@ contract BridgeTest is AaveOpEthERC20BridgeTest {
   }
 }
 
-contract TransferOwnership is AavePolEthPlasmaBridgeTest {
+contract TransferOwnership is AaveOpEthERC20BridgeTest {
   function test_revertsIf_invalidCaller() public {
     vm.startPrank(makeAddr('random-caller'));
     vm.expectRevert('Ownable: caller is not the owner');
