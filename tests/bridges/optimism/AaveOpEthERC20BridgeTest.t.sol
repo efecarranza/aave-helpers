@@ -11,7 +11,7 @@ import {GovernanceV3Optimism} from 'aave-address-book/GovernanceV3Optimism.sol';
 import {AaveOpEthERC20Bridge} from 'src/bridges/optimism/AaveOpEthERC20Bridge.sol';
 import {IAaveOpEthERC20Bridge} from 'src/bridges/optimism/IAaveOpEthERC20Bridge.sol';
 
-contract AavePolEthPlasmaBridgeTest is Test {
+contract AaveOpEthERC20BridgeTest is Test {
   event Bridge(
     address indexed token,
     address indexed l1token,
@@ -32,7 +32,7 @@ contract AavePolEthPlasmaBridgeTest is Test {
   }
 }
 
-contract BridgeTest is AavePolEthPlasmaBridgeTest {
+contract BridgeTest is AaveOpEthERC20BridgeTest {
   function test_revertsIf_invalidChain() public {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 20110401);
     bytes32 salt = keccak256(abi.encode(tx.origin, uint256(0)));
@@ -86,7 +86,7 @@ contract BridgeTest is AavePolEthPlasmaBridgeTest {
   }
 }
 
-contract TransferOwnership is AavePolEthPlasmaBridgeTest {
+contract TransferOwnership is AaveOpEthERC20BridgeTest {
   function test_revertsIf_invalidCaller() public {
     vm.startPrank(makeAddr('random-caller'));
     vm.expectRevert('Ownable: caller is not the owner');
@@ -102,7 +102,7 @@ contract TransferOwnership is AavePolEthPlasmaBridgeTest {
   }
 }
 
-contract EmergencyTokenTransfer is AavePolEthPlasmaBridgeTest {
+contract EmergencyTokenTransfer is AaveOpEthERC20BridgeTest {
   function test_revertsIf_invalidCaller() public {
     vm.expectRevert('ONLY_RESCUE_GUARDIAN');
     vm.startPrank(makeAddr('random-caller'));
