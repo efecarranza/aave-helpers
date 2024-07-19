@@ -31,5 +31,6 @@ interface IAaveOpEthERC20Bridge {
   function bridge(address token, address l1Token, uint256 amount) external;
 
   /// @notice Returns the current nonce
+  /// @return Value of the current nonce
   function nonce() external view returns (uint256);
 }
