@@ -26,7 +26,7 @@ contract AaveOpEthERC20BridgeTest is Test {
   }
 }
 
-contract BridgeTest is AavePolEthPlasmaBridgeTest {
+contract BridgeTest is AaveOpEthERC20BridgeTest {
   function test_revertsIf_invalidChain() public {
     vm.createSelectFork(vm.rpcUrl('mainnet'), 20110401);
     bytes32 salt = keccak256(abi.encode(tx.origin, uint256(0)));
