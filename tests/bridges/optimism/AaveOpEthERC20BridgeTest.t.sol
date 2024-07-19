@@ -11,7 +11,7 @@ import {GovernanceV3Optimism} from 'aave-address-book/GovernanceV3Optimism.sol';
 import {AaveOpEthERC20Bridge} from 'src/bridges/optimism/AaveOpEthERC20Bridge.sol';
 import {IAaveOpEthERC20Bridge} from 'src/bridges/optimism/IAaveOpEthERC20Bridge.sol';
 
-contract AavePolEthPlasmaBridgeTest is Test {
+contract AaveOpEthERC20BridgeTest is Test {
   event Bridge(address indexed token, address indexed l1token, uint256 amount, address indexed to);
 
   address public constant WHALE = 0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245;
