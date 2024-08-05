@@ -2,11 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {IPool, DataTypes} from 'aave-address-book/AaveV3.sol';
-import {ILendingPool} from 'aave-address-book/AaveV2.sol';
 import {ICollector} from 'aave-address-book/common/ICollector.sol';
+import {ILendingPool, DataTypes as V2DataTypes} from 'aave-address-book/AaveV2.sol';
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
+
 import {AaveSwapper} from '../swaps/AaveSwapper.sol';
+import {IChainlinkAggregator} from '../interfaces/IChainlinkAggregator.sol';
 
 /**
  * @title CollectorUtils
@@ -15,6 +17,18 @@ import {AaveSwapper} from '../swaps/AaveSwapper.sol';
  */
 library CollectorUtils {
   error InvalidZeroAmount();
+  error PriceOracleDecimalsMismatch();
+
+  /* @notice Object with deposit or withdrawal params
+   * @param pool Aave V3 or V2 (only in case of withdraw) pool
+   * @param underlying ERC20 compatible asset, listed on the corresponding Aave v3 pool
+   * @param amount to be withdrawn/deposited
+   */
+  struct IOInput {
+    address pool;
+    address underlying;
+    uint256 amount;
+  }
 
   /**
    * @notice object with stream parameters
@@ -56,53 +70,49 @@ library CollectorUtils {
   /**
    * @notice Deposit funds of the collector to the Aave v3
    * @param collector aave collector
-   * @param pool Aave v3 pool
-   * @param underlying ERC20 compatible asset, listed on the corresponding Aave v3 pool
-   * @param amount to be deposited
+   * @param input deposit parameters wrapped as IOInput
    */
-  function depositToV3(
-    ICollector collector,
-    IPool pool,
-    address underlying,
-    uint256 amount
-  ) internal {
-    if (amount == 0) {
+  function depositToV3(ICollector collector, IOInput memory input) internal {
+    if (input.amount == 0) {
       revert InvalidZeroAmount();
     }
 
-    if (amount == type(uint256).max) {
-      amount = IERC20(underlying).balanceOf(address(collector));
+    if (input.amount == type(uint256).max) {
+      input.amount = IERC20(input.underlying).balanceOf(address(collector));
     }
-    collector.transfer(underlying, address(this), amount);
-    IERC20(underlying).forceApprove(address(pool), amount);
-    pool.deposit(underlying, amount, address(collector), 0);
-  }
-
-  function withdrawFromV3(
-    ICollector collector,
-    IPool pool,
-    address underlying,
-    uint256 amount
-  ) internal {
-    if (amount == 0) {
-      revert InvalidZeroAmount();
-    }
-    DataTypes.ReserveData memory reserveData = pool.getReserveData(underlying);
-
-    if (amount == type(uint256).max) {
-      amount = IERC20(reserveData.aTokenAddress).balanceOf(address(collector));
-    }
-    collector.transfer(reserveData.aTokenAddress, address(this), amount);
-
-    // in case of imprecision during the aTokenTransfer withdraw a bit less
-    uint256 balanceAfterTransfer = IERC20(reserveData.aTokenAddress).balanceOf(address(this));
-    amount = balanceAfterTransfer >= amount ? amount : balanceAfterTransfer;
-
-    pool.withdraw(underlying, amount, address(collector));
+    collector.transfer(input.underlying, address(this), input.amount);
+    IERC20(input.underlying).forceApprove(input.pool, input.amount);
+    IPool(input.pool).supply(input.underlying, input.amount, address(collector), 0);
   }
 
   /**
-   * @notice Open a funds stream to the receiver
+   * @notice Withdraw funds of the collector from the Aave v3
+   * @dev due to imprecision may get 1-2 wei less then specified amount
+   * @param collector aave collector
+   * @param input withdraw parameters wrapped as IOInput
+   */
+  function withdrawFromV3(ICollector collector, IOInput memory input) internal returns (uint256) {
+    DataTypes.ReserveDataLegacy memory reserveData = IPool(input.pool).getReserveData(
+      input.underlying
+    );
+    return __withdraw(collector, input, reserveData.aTokenAddress);
+  }
+
+  /**
+   * @notice Withdraw funds of the collector from the Aave v2
+   * @dev due to imprecision may get 1-2 wei less then specified amount
+   * @param collector aave collector
+   * @param input withdraw parameters wrapped as IOInput
+   */
+  function withdrawFromV2(ICollector collector, IOInput memory input) internal returns (uint256) {
+    V2DataTypes.ReserveData memory reserveData = ILendingPool(input.pool).getReserveData(
+      input.underlying
+    );
+    return __withdraw(collector, input, reserveData.aTokenAddress);
+  }
+
+  /**
+   * @notice Open a funds stream to the receiver with exact amount after rounding
    * @param collector aave collector
    * @param input stream creation parameters wrapped as CreateStreamInput
    * @return the actual stream amount
@@ -130,18 +140,30 @@ library CollectorUtils {
    * @param swapper AaveSwapper
    * @param input swap parameters wrapped as SwapInput
    */
-  function swap(ICollector collector, AaveSwapper swapper, SwapInput memory input) internal {
+  function swap(ICollector collector, address swapper, SwapInput memory input) internal {
     if (input.amount == 0) {
       revert InvalidZeroAmount();
+    }
+    if (
+      IChainlinkAggregator(input.fromUnderlyingPriceFeed).decimals() !=
+      IChainlinkAggregator(input.toUnderlyingPriceFeed).decimals()
+    ) {
+      revert PriceOracleDecimalsMismatch();
     }
 
     if (input.amount == type(uint256).max) {
       input.amount = IERC20(input.fromUnderlying).balanceOf(address(collector));
     }
 
-    collector.transfer(input.fromUnderlying, address(swapper), input.amount);
+    collector.transfer(input.fromUnderlying, swapper, input.amount);
+    uint256 swapperBalance = IERC20(input.fromUnderlying).balanceOf(swapper);
 
-    swapper.swap(
+    // some tokens, like stETH, can loose 1-2wei on transfer
+    if (swapperBalance < input.amount) {
+      input.amount = swapperBalance;
+    }
+
+    AaveSwapper(swapper).swap(
       input.milkman,
       input.priceChecker,
       input.fromUnderlying,
@@ -149,37 +171,41 @@ library CollectorUtils {
       input.fromUnderlyingPriceFeed,
       input.toUnderlyingPriceFeed,
       address(collector),
-      IERC20(input.fromUnderlying).balanceOf(address(swapper)), // TODO: ?? maybe exact amount
+      input.amount,
       input.slippage
     );
   }
 
-    /**
-   * @notice Open a swap order on AaveSwapper, to swap collector funds fromUnderlying to toUnderlying 
-   * using internal AaveSwapper balance.
+  /**
+   * @notice Withdraw funds of the collector from Aave
+   * @dev internal template for both v2 and v3
+   * @dev due to imprecision may get 1-2 wei less then specified amount
    * @param collector aave collector
-   * @param swapper AaveSwapper
-   * @param input swap parameters wrapped as SwapInput
+   * @param input withdraw parameters wrapped as IOInput
+   * @param aTokenAddress aToken address for the corresponding reserve in the pool
+   * @param aTokenAddress aToken address for the corresponding reserve in the pool
    */
-  function swapWithBalance(ICollector collector, AaveSwapper swapper, SwapInput memory input) internal {
+  function __withdraw(
+    ICollector collector,
+    IOInput memory input,
+    address aTokenAddress
+  ) internal returns (uint256) {
     if (input.amount == 0) {
       revert InvalidZeroAmount();
     }
 
     if (input.amount == type(uint256).max) {
-      input.amount = IERC20(input.fromUnderlying).balanceOf(address(swapper));
+      input.amount = IERC20(aTokenAddress).balanceOf(address(collector));
     }
+    collector.transfer(aTokenAddress, address(this), input.amount);
 
-    swapper.swap(
-      input.milkman,
-      input.priceChecker,
-      input.fromUnderlying,
-      input.toUnderlying,
-      input.fromUnderlyingPriceFeed,
-      input.toUnderlyingPriceFeed,
-      address(collector),
-      IERC20(input.fromUnderlying).balanceOf(address(swapper)), // TODO: ?? maybe exact amount
-      input.slippage
-    );
+    // in case of imprecision during the aTokenTransfer withdraw a bit less
+    uint256 balanceAfterTransfer = IERC20(aTokenAddress).balanceOf(address(this));
+    input.amount = balanceAfterTransfer >= input.amount ? input.amount : balanceAfterTransfer;
+
+    // @dev withdrawal interfaces of v2 and v3 is the same, so we use any
+    IPool(input.pool).withdraw(input.underlying, input.amount, address(collector));
+
+    return input.amount;
   }
 }

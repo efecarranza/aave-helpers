@@ -25,9 +25,9 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   using DataTypesV2 for DataTypesV2.ReserveData;
   using DataTypesV3 for DataTypesV3.ReserveData;
 
-  ILendingPool immutable POOLV2 = AaveV2Ethereum.POOL;
-  IPool immutable POOLV3 = AaveV3Ethereum.POOL;
-  ICollector immutable collector = AaveV3Ethereum.COLLECTOR;
+  ILendingPool public immutable POOLV2 = AaveV2Ethereum.POOL;
+  IPool public immutable POOLV3 = AaveV3Ethereum.POOL;
+  ICollector public immutable COLLECTOR = AaveV3Ethereum.COLLECTOR;
 
   AaveSwapper public immutable SWAPPER = AaveSwapper(MiscEthereum.AAVE_SWAPPER);
   address public immutable MILKMAN = 0x11C76AD590ABDFFCD980afEC9ad951B160F02797;
@@ -47,34 +47,33 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   /// Steward Actions
 
   /// @inheritdoc IFinanceSteward
-  function depositV3(address reserve, uint amount) external onlyOwnerOrGuardian {
-    collector.transfer(reserve, address(this), amount);
-    IERC20(reserve).approve(address(POOLV3), amount);
-    POOLV3.deposit(reserve, amount, address(collector), 0);
+  function depositV3(address reserve, uint256 amount) external onlyOwnerOrGuardian {
+    IOInput memory depositData = IOInput(address(POOLV3), address(reserve), amount);
+    depositToV3(COLLECTOR, depositData);
   }
 
   /// @inheritdoc IFinanceSteward
-  function migrateV2toV3(address reserve, uint amount) external onlyOwnerOrGuardian {
+  function migrateV2toV3(address reserve, uint256 amount) external onlyOwnerOrGuardian {
     require(amount > 0, 'Submit positive amount');
     DataTypesV2.ReserveData memory reserveData = POOLV2.getReserveData(reserve);
 
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
-      uint currentBalance = IERC20(atoken).balanceOf(address(collector));
+      uint256 currentBalance = IERC20(atocollectorken).balanceOf(address(COLLECTOR));
       require(currentBalance - amount > minTokenBalance[atoken], 'MINIMUM BALANCE SHIELDED');
     }
 
-    collector.transfer(atoken, address(this), amount);
-    uint256 widrAmount = POOLV2.withdraw(reserve, amount, address(this));
+    IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
 
-    IERC20(reserve).approve(address(POOLV3), widrAmount);
-    POOLV3.deposit(reserve, widrAmount, address(collector), 0);
+    withdrawAmount = withdrawFromV2(COLLECTOR, withdrawData);
+
+    depositV3(reserve, withdrawAmount);
   }
 
   /// @inheritdoc IFinanceSteward
   function withdrawV2andSwap(
     address reserve,
-    uint amount,
+    uint256 amount,
     address buyToken
   ) external onlyOwnerOrGuardian {
     _validateSwap(reserve, amount, buyToken);
@@ -83,26 +82,26 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
-      uint currentBalance = IERC20(atoken).balanceOf(address(collector));
+      uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
       require(currentBalance - amount > minTokenBalance[atoken], 'MINIMUM BALANCE SHIELDED');
     }
 
-    collector.transfer(atoken, address(this), amount);
-    uint256 widrAmount = POOLV2.withdraw(reserve, amount, address(SWAPPER));
+    IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
 
-    AaveV3Ethereum.COLLECTOR.swapWithBalance(
-      SWAPPER,
-      CollectorUtils.SwapInput({
-        milkman: MILKMAN,
-        priceChecker: PRICE_CHECKER,
-        fromUnderlying: reserve,
-        toUnderlying: buyToken,
-        fromUnderlyingPriceFeed: priceOracle[reserve],
-        toUnderlyingPriceFeed: priceOracle[buyToken],
-        amount: widrAmount,
-        slippage: 1_50
-      })
+    withdrawAmount = withdrawFromV2(COLLECTOR, withdrawData);
+
+    SwapInput swapData = (
+      MILKMAN,
+      PRICE_CHECKER,
+      reserve,
+      buyToken,
+      priceOracle[reserve],
+      priceOracle[buyToken],
+      withdrawAmount,
+      1_50
     );
+
+    swap(COLLECTOR, address(SWAPPER), swapData);
   }
 
   /// @inheritdoc IFinanceSteward
@@ -116,26 +115,26 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     DataTypesV3.ReserveData memory reserveData = POOLV3.getReserveData(reserve);
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
-      uint currentBalance = IERC20(atoken).balanceOf(address(collector));
+      uint currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
       require(currentBalance - amount > minTokenBalance[atoken], 'MINIMUM BALANCE SHIELDED');
     }
 
-    collector.transfer(atoken, address(this), amount);
-    uint256 widrAmount = POOLV3.withdraw(reserve, amount, address(SWAPPER));
+    IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
 
-    AaveV3Ethereum.COLLECTOR.swapWithBalance(
-      SWAPPER,
-      CollectorUtils.SwapInput({
-        milkman: MILKMAN,
-        priceChecker: PRICE_CHECKER,
-        fromUnderlying: reserve,
-        toUnderlying: buyToken,
-        fromUnderlyingPriceFeed: priceOracle[reserve],
-        toUnderlyingPriceFeed: priceOracle[buyToken],
-        amount: widrAmount,
-        slippage: 1_50
-      })
+    withdrawAmount = withdrawFromV3(COLLECTOR, withdrawData);
+
+    SwapInput swapData = (
+      MILKMAN,
+      PRICE_CHECKER,
+      reserve,
+      buyToken,
+      priceOracle[reserve],
+      priceOracle[buyToken],
+      withdrawAmount,
+      1_50
     );
+
+    swap(COLLECTOR, address(SWAPPER), swapData);
   }
 
   /// @inheritdoc IFinanceSteward
@@ -147,23 +146,22 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     _validateSwap(sellToken, amount, buyToken);
 
     if (minTokenBalance[sellToken] > 0) {
-      uint currentBalance = IERC20(sellToken).balanceOf(address(collector));
+      uint currentBalance = IERC20(sellToken).balanceOf(address(COLLECTOR));
       require(currentBalance - amount > minTokenBalance[sellToken], 'MINIMUM BALANCE SHIELDED');
     }
-    
-    AaveV3Ethereum.COLLECTOR.swap(
-      SWAPPER,
-      CollectorUtils.SwapInput({
-        milkman: MILKMAN,
-        priceChecker: PRICE_CHECKER,
-        fromUnderlying: sellToken,
-        toUnderlying: buyToken,
-        fromUnderlyingPriceFeed: priceOracle[sellToken],
-        toUnderlyingPriceFeed: priceOracle[buyToken],
-        amount: amount,
-        slippage: 1_50
-      })
+
+    SwapInput swapData = (
+      MILKMAN,
+      PRICE_CHECKER,
+      sellToken,
+      buyToken,
+      priceOracle[sellToken],
+      priceOracle[buyToken],
+      withdrawAmount,
+      1_50
     );
+
+    swap(COLLECTOR, address(SWAPPER), swapData);
   }
 
   // Controlled Actions
@@ -171,13 +169,13 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   /// @inheritdoc IFinanceSteward
   function approve(address token, address to, uint256 amount) external onlyOwnerOrGuardian {
     _validateTransfer(token, to, amount);
-    collector.approve(token, to, amount);
+    COLLECTOR.approve(token, to, amount);
   }
 
   /// @inheritdoc IFinanceSteward
   function transfer(address token, address to, uint256 amount) external onlyOwnerOrGuardian {
     _validateTransfer(token, to, amount);
-    collector.transfer(token, to, amount);
+    COLLECTOR.transfer(token, to, amount);
   }
 
   /// @inheritdoc IFinanceSteward
@@ -185,19 +183,29 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     address token,
     address to,
     uint256 amount,
-    uint256 duration
+    uint256 endDate
   ) external onlyOwnerOrGuardian {
     _validateTransfer(token, to, amount);
-    require(duration < 999 days, 'DURATION TOO LONG');
 
-    uint256 startTime = block.timestamp;
-    uint256 stopTime = block.timestamp + duration;
-    collector.createStream(to, amount, token, startTime, stopTime);
+    if (endDate < block.timestamp) {
+      revert('END DATE ERROR');
+    }
+
+    uint256 stopTime = endDate;
+    uint256 duration = endDate - block.timestamp;
+
+    if (duration > 999 days) {
+      revert('DURATION TOO LONG');
+    }
+
+    CreateStreamInput memory streamData = (token, to, amount, duration);
+
+    stream(COLLECTOR, streamData);
   }
 
   // Not sure if we want this functionality
   function cancelStream(uint256 streamId) external onlyOwnerOrGuardian {
-    collector.cancelStream(streamId);
+    COLLECTOR.cancelStream(streamId);
   }
 
   /// DAO Actions
@@ -243,7 +251,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     require(transferApprovedReceiver[to] == true, 'RECEIVER NOT WHITELISTED');
 
     if (minTokenBalance[token] > 0) {
-      uint currentBalance = IERC20(token).balanceOf(address(collector));
+      uint currentBalance = IERC20(token).balanceOf(address(COLLECTOR));
       require(currentBalance - amount > minTokenBalance[token], 'MINIMUM BALANCE SHIELDED');
     }
 
