@@ -22,7 +22,7 @@ import {IFinanceSteward} from './IFinanceSteward.sol';
  */
 contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   using DataTypesV2 for DataTypesV2.ReserveData;
-  using DataTypesV3 for DataTypesV3.ReserveData;
+  using DataTypesV3 for DataTypesV3.ReserveDataLegacy;
 
   using CU for ICollector;
   using CU for CU.IOInput;
@@ -136,7 +136,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   ) external onlyOwnerOrGuardian {
     _validateSwap(reserve, amount, buyToken);
 
-    DataTypesV3.ReserveData memory reserveData = POOLV3.getReserveData(reserve);
+    DataTypesV3.ReserveDataLegacy memory reserveData = POOLV3.getReserveData(reserve);
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
       uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
