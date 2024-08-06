@@ -25,6 +25,13 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   using DataTypesV2 for DataTypesV2.ReserveData;
   using DataTypesV3 for DataTypesV3.ReserveData;
 
+  error UnrecognizedReceiver;
+  error ExceedsBudget;
+  error UnrecognizedToken;
+  error MissingPriceFeed;
+  error PriceFeedFailure;
+  error InvalidDate;
+
   ILendingPool public immutable POOLV2 = AaveV2Ethereum.POOL;
   IPool public immutable POOLV3 = AaveV3Ethereum.POOL;
   ICollector public immutable COLLECTOR = AaveV3Ethereum.COLLECTOR;
@@ -36,8 +43,8 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   mapping(address => bool) public transferApprovedReceiver;
   mapping(address => bool) public swapApprovedToken;
   mapping(address => address) public priceOracle;
-  mapping(address => uint) public tokenBudget;
-  mapping(address => uint) public minTokenBalance;
+  mapping(address => uint256) public tokenBudget;
+  mapping(address => uint256) public minTokenBalance;
 
   constructor(address _owner, address _guardian) {
     _transferOwnership(_owner);
@@ -54,13 +61,17 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   /// @inheritdoc IFinanceSteward
   function migrateV2toV3(address reserve, uint256 amount) external onlyOwnerOrGuardian {
-    require(amount > 0, 'Submit positive amount');
+    if (amount == 0) {
+      revert InvalidZeroAmount();
+    }
     DataTypesV2.ReserveData memory reserveData = POOLV2.getReserveData(reserve);
 
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
       uint256 currentBalance = IERC20(atocollectorken).balanceOf(address(COLLECTOR));
-      require(currentBalance - amount > minTokenBalance[atoken], 'MINIMUM BALANCE SHIELDED');
+      if (currentBalance - amount < minTokenBalance[atoken]) {
+        revert MinimumBalanceShield();
+      }
     }
 
     IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
@@ -83,7 +94,9 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
       uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
-      require(currentBalance - amount > minTokenBalance[atoken], 'MINIMUM BALANCE SHIELDED');
+      if (currentBalance - amount < minTokenBalance[atoken]) {
+        revert MinimumBalanceShield();
+      }
     }
 
     IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
@@ -107,7 +120,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   /// @inheritdoc IFinanceSteward
   function withdrawV3andSwap(
     address reserve,
-    uint amount,
+    uint256 amount,
     address buyToken
   ) external onlyOwnerOrGuardian {
     _validateSwap(reserve, amount, buyToken);
@@ -115,8 +128,10 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     DataTypesV3.ReserveData memory reserveData = POOLV3.getReserveData(reserve);
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
-      uint currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
-      require(currentBalance - amount > minTokenBalance[atoken], 'MINIMUM BALANCE SHIELDED');
+      uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
+      if (currentBalance - amount < minTokenBalance[atoken]) {
+        revert MinimumBalanceShield();
+      }
     }
 
     IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
@@ -146,8 +161,10 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     _validateSwap(sellToken, amount, buyToken);
 
     if (minTokenBalance[sellToken] > 0) {
-      uint currentBalance = IERC20(sellToken).balanceOf(address(COLLECTOR));
-      require(currentBalance - amount > minTokenBalance[sellToken], 'MINIMUM BALANCE SHIELDED');
+      uint256 currentBalance = IERC20(sellToken).balanceOf(address(COLLECTOR));
+      if (currentBalance - amount < minTokenBalance[sellToken]) {
+        revert MinimumBalanceShield();
+      }
     }
 
     SwapInput swapData = (
@@ -188,14 +205,14 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     _validateTransfer(token, to, amount);
 
     if (endDate < block.timestamp) {
-      revert('END DATE ERROR');
+      revert InvalidDate();
     }
 
     uint256 stopTime = endDate;
     uint256 duration = endDate - block.timestamp;
 
     if (duration > 999 days) {
-      revert('DURATION TOO LONG');
+      revert InvalidDate();
     }
 
     CreateStreamInput memory streamData = (token, to, amount, duration);
@@ -212,13 +229,13 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   /// @inheritdoc IFinanceSteward
   function increaseBudget(address token, uint256 amount) external onlyOwner {
-    uint currentBudget = tokenBudget[token];
+    uint256 currentBudget = tokenBudget[token];
     _updateBudget(token, currentBudget + amount);
   }
 
   /// @inheritdoc IFinanceSteward
   function decreaseBudget(address token, uint256 amount) external onlyOwner {
-    uint currentBudget = tokenBudget[token];
+    uint256 currentBudget = tokenBudget[token];
     if (amount > currentBudget) {
       _updateBudget(token, 0);
     } else {
@@ -240,7 +257,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   }
 
   /// @inheritdoc IFinanceSteward
-  function setMinimumBalanceShield(address token, uint amount) external onlyOwner {
+  function setMinimumBalanceShield(address token, uint256 amount) external onlyOwner {
     minTokenBalance[token] = amount;
     emit MinimumTokenBalanceUpdated(token, amount);
   }
@@ -248,36 +265,42 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   /// Logic
 
   function _validateTransfer(address token, address to, uint256 amount) internal {
-    require(transferApprovedReceiver[to] == true, 'RECEIVER NOT WHITELISTED');
-
-    if (minTokenBalance[token] > 0) {
-      uint currentBalance = IERC20(token).balanceOf(address(COLLECTOR));
-      require(currentBalance - amount > minTokenBalance[token], 'MINIMUM BALANCE SHIELDED');
+    if (transferApprovedReceiver[to] == false) {
+      revert UnrecognizedReceiver();
     }
 
-    uint currentBudget = tokenBudget[token];
-    require(currentBudget > amount, 'BUDGET BELOW TRANSFER AMOUNT');
+    if (minTokenBalance[token] > 0) {
+      uint256 currentBalance = IERC20(token).balanceOf(address(COLLECTOR));
+      if (currentBalance - amount < minTokenBalance[token]) {
+        revert MinimumBalanceShield();
+      }
+    }
+
+    uint256 currentBudget = tokenBudget[token];
+    if (currentBudget < amount) {
+      revert ExceedsBudget();
+    }
     _updateBudget(token, currentBudget - amount);
   }
 
-  function _validateSwap(address sellToken, uint amountIn, address buyToken) internal view {
-    require(amountIn > 0, 'SUBMIT POSITIVE AMOUNT');
-    require(swapApprovedToken[sellToken] && swapApprovedToken[buyToken], 'TOKEN NOT SWAP APPROVED');
-    require(
-      priceOracle[sellToken] > address(0) && priceOracle[buyToken] > address(0),
-      'MISSING PRICE FEED'
-    );
-    require(
-      AggregatorInterface(priceOracle[buyToken]).latestAnswer() > 0,
-      'BuyToken: BAD PRICE FEED'
-    );
-    require(
-      AggregatorInterface(priceOracle[sellToken]).latestAnswer() > 0,
-      'SellToken: BAD PRICE FEED'
-    );
+  function _validateSwap(address sellToken, uint256 amountIn, address buyToken) internal view {
+    if (amountIn == 0) revert InvalidZeroAmount();
+    if (!swapApprovedToken[sellToken] || !swapApprovedToken[buyToken]) {
+      revert UnrecognizedToken();
+    }
+    if (priceOracle[sellToken] == address(0) && priceOracle[buyToken] == address(0)) {
+      revert MissingPriceFeed();
+    }
+
+    if (
+      AggregatorInterface(priceOracle[buyToken]).latestAnswer() == 0 ||
+      AggregatorInterface(priceOracle[sellToken]).latestAnswer() == 0
+    ) {
+      revert PriceFeedFailure();
+    }
   }
 
-  function _updateBudget(address token, uint newAmount) internal {
+  function _updateBudget(address token, uint256 newAmount) internal {
     tokenBudget[token] = newAmount;
     emit BudgetUpdate(token, newAmount);
   }

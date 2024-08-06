@@ -184,6 +184,7 @@ library CollectorUtils {
    * @param input withdraw parameters wrapped as IOInput
    * @param aTokenAddress aToken address for the corresponding reserve in the pool
    * @param aTokenAddress aToken address for the corresponding reserve in the pool
+   * @return the actual amount of underlying withdrawn
    */
   function __withdraw(
     ICollector collector,
@@ -194,9 +195,6 @@ library CollectorUtils {
       revert InvalidZeroAmount();
     }
 
-    if (input.amount == type(uint256).max) {
-      input.amount = IERC20(aTokenAddress).balanceOf(address(collector));
-    }
     collector.transfer(aTokenAddress, address(this), input.amount);
 
     // in case of imprecision during the aTokenTransfer withdraw a bit less
@@ -204,8 +202,6 @@ library CollectorUtils {
     input.amount = balanceAfterTransfer >= input.amount ? input.amount : balanceAfterTransfer;
 
     // @dev withdrawal interfaces of v2 and v3 is the same, so we use any
-    IPool(input.pool).withdraw(input.underlying, input.amount, address(collector));
-
-    return input.amount;
+    return IPool(input.pool).withdraw(input.underlying, input.amount, address(collector));
   }
 }
