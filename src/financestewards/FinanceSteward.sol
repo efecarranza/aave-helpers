@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
 import {OwnableWithGuardian} from 'solidity-utils/contracts/access-control/OwnableWithGuardian.sol';
-import {CollectorUtils, ICollector} from './CollectorUtils.sol';
+import {ICollector, CollectorUtils as CU} from'./CollectorUtils.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
@@ -21,16 +21,22 @@ import {IFinanceSteward} from './IFinanceSteward.sol';
  * @notice Helper contract that enables a Guardian to execute permissioned actions on the Aave Collector
  */
 contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
-  using CollectorUtils for ICollector;
   using DataTypesV2 for DataTypesV2.ReserveData;
   using DataTypesV3 for DataTypesV3.ReserveData;
 
-  error UnrecognizedReceiver;
-  error ExceedsBudget;
-  error UnrecognizedToken;
-  error MissingPriceFeed;
-  error PriceFeedFailure;
-  error InvalidDate;
+  using CU for ICollector;
+  using CU for CU.IOInput;
+  using CU for CU.CreateStreamInput;
+  using CU for CU.SwapInput;
+
+  error InvalidZeroAmount();
+  error UnrecognizedReceiver();
+  error ExceedsBudget();
+  error UnrecognizedToken();
+  error MissingPriceFeed();
+  error PriceFeedFailure();
+  error InvalidDate();
+  error MinimumBalanceShield();
 
   ILendingPool public immutable POOLV2 = AaveV2Ethereum.POOL;
   IPool public immutable POOLV3 = AaveV3Ethereum.POOL;
@@ -55,8 +61,8 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   /// @inheritdoc IFinanceSteward
   function depositV3(address reserve, uint256 amount) external onlyOwnerOrGuardian {
-    IOInput memory depositData = IOInput(address(POOLV3), address(reserve), amount);
-    depositToV3(COLLECTOR, depositData);
+    CU.IOInput memory depositData = CU.IOInput(address(POOLV3), address(reserve), amount);
+    CU.depositToV3(COLLECTOR, depositData);
   }
 
   /// @inheritdoc IFinanceSteward
@@ -68,17 +74,22 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
-      uint256 currentBalance = IERC20(atocollectorken).balanceOf(address(COLLECTOR));
+      uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[atoken]) {
         revert MinimumBalanceShield();
       }
     }
 
-    IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
+    CU.IOInput memory withdrawData = CU.IOInput(address(POOLV3), address(reserve), amount);
 
-    withdrawAmount = withdrawFromV2(COLLECTOR, withdrawData);
+    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData);
 
-    depositV3(reserve, withdrawAmount);
+    CU.IOInput memory depositData = CU.IOInput(
+      address(POOLV3),
+      address(reserve),
+      withdrawAmount
+    );
+    CU.depositToV3(COLLECTOR, depositData);
   }
 
   /// @inheritdoc IFinanceSteward
@@ -99,11 +110,11 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       }
     }
 
-    IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
+    CU.IOInput memory withdrawData = CU.IOInput(address(POOLV3), address(reserve), amount);
 
-    withdrawAmount = withdrawFromV2(COLLECTOR, withdrawData);
+    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData);
 
-    SwapInput swapData = (
+    CU.SwapInput memory swapData = CU.SwapInput(
       MILKMAN,
       PRICE_CHECKER,
       reserve,
@@ -114,7 +125,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       1_50
     );
 
-    swap(COLLECTOR, address(SWAPPER), swapData);
+    CU.swap(COLLECTOR, address(SWAPPER), swapData);
   }
 
   /// @inheritdoc IFinanceSteward
@@ -134,11 +145,11 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       }
     }
 
-    IOInput memory withdrawData = IOInput(address(POOLV3), address(reserve), amount);
+    CU.IOInput memory withdrawData = CU.IOInput(address(POOLV3), address(reserve), amount);
 
-    withdrawAmount = withdrawFromV3(COLLECTOR, withdrawData);
+    uint256 withdrawAmount = CU.withdrawFromV3(COLLECTOR, withdrawData);
 
-    SwapInput swapData = (
+    CU.SwapInput memory swapData = CU.SwapInput(
       MILKMAN,
       PRICE_CHECKER,
       reserve,
@@ -149,7 +160,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       1_50
     );
 
-    swap(COLLECTOR, address(SWAPPER), swapData);
+    CU.swap(COLLECTOR, address(SWAPPER), swapData);
   }
 
   /// @inheritdoc IFinanceSteward
@@ -167,18 +178,18 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       }
     }
 
-    SwapInput swapData = (
+    CU.SwapInput memory swapData = CU.SwapInput(
       MILKMAN,
       PRICE_CHECKER,
       sellToken,
       buyToken,
       priceOracle[sellToken],
       priceOracle[buyToken],
-      withdrawAmount,
+      amount,
       1_50
     );
 
-    swap(COLLECTOR, address(SWAPPER), swapData);
+    CU.swap(COLLECTOR, address(SWAPPER), swapData);
   }
 
   // Controlled Actions
@@ -200,24 +211,20 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     address token,
     address to,
     uint256 amount,
+    uint256 startDate,
     uint256 endDate
   ) external onlyOwnerOrGuardian {
     _validateTransfer(token, to, amount);
 
-    if (endDate < block.timestamp) {
+    if (endDate < block.timestamp || endDate < startDate) {
       revert InvalidDate();
     }
 
-    uint256 stopTime = endDate;
-    uint256 duration = endDate - block.timestamp;
+    uint256 duration = endDate - startDate;
 
-    if (duration > 999 days) {
-      revert InvalidDate();
-    }
+    CU.CreateStreamInput memory streamData = CU.CreateStreamInput(token, to, amount, startDate, duration);
 
-    CreateStreamInput memory streamData = (token, to, amount, duration);
-
-    stream(COLLECTOR, streamData);
+    CU.stream(COLLECTOR, streamData);
   }
 
   // Not sure if we want this functionality

@@ -65,8 +65,9 @@ interface IFinanceSteward {
   /// @param token The address of the token to stream
   /// @param to The address of the recipient
   /// @param amount The amount of the token to stream
-  /// @param duration The duration of the stream
-  function createStream(address token, address to, uint256 amount, uint256 duration) external;
+  /// @param startDate The starting date of the stream
+  /// @param endDate The ending date of the stream
+  function createStream(address token, address to, uint256 amount, uint256 startDate, uint256 endDate) external;
 
   /// @notice Cancels a stream identified by the streamId
   /// @param streamId The ID of the stream to cancel
