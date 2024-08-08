@@ -31,6 +31,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   error InvalidZeroAmount();
   error UnrecognizedReceiver();
+  error ExceedsBalance();
   error ExceedsBudget();
   error UnrecognizedToken();
   error MissingPriceFeed();
@@ -279,8 +280,11 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       revert UnrecognizedReceiver();
     }
 
+    uint256 currentBalance = IERC20(token).balanceOf(address(COLLECTOR));
+    if (currentBalance < amount){
+      revert ExceedsBalance();
+    }
     if (minTokenBalance[token] > 0) {
-      uint256 currentBalance = IERC20(token).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[token]) {
         revert MinimumBalanceShield();
       }
