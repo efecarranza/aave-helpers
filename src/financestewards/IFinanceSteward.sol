@@ -2,6 +2,20 @@
 pragma solidity ^0.8.0;
 
 interface IFinanceSteward {
+  /**
+   * @notice object with stream parameters
+   * @param token ERC20 compatible asset
+   * @param amount streamed amount in wei
+   * @param start of the stream in timestamp
+   * @param end of the stream in timestamp
+   */
+  struct StreamData {
+    address token;
+    uint256 amount;
+    uint256 start;
+    uint256 end;
+  }
+
   /// @notice Emitted when the budget for a token is updated
   /// @param token The address of the token
   /// @param newAmount The new budget amount
@@ -62,12 +76,9 @@ interface IFinanceSteward {
   function transfer(address token, address to, uint256 amount) external;
 
   /// @notice Creates a stream to transfer a specified amount of a token to a recipient over a duration
-  /// @param token The address of the token to stream
   /// @param to The address of the recipient
-  /// @param amount The amount of the token to stream
-  /// @param startDate The starting date of the stream
-  /// @param endDate The ending date of the stream
-  function createStream(address token, address to, uint256 amount, uint256 startDate, uint256 endDate) external;
+  /// @param stream Object including token, amount, start, end
+  function createStream(address to, StreamData memory stream) external;
 
   /// @notice Cancels a stream identified by the streamId
   /// @param streamId The ID of the stream to cancel

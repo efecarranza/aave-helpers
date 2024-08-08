@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
 import {OwnableWithGuardian} from 'solidity-utils/contracts/access-control/OwnableWithGuardian.sol';
-import {ICollector, CollectorUtils as CU} from'./CollectorUtils.sol';
+import {ICollector, CollectorUtils as CU} from './CollectorUtils.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
@@ -51,10 +51,13 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   mapping(address => address) public priceOracle;
   mapping(address => uint256) public tokenBudget;
   mapping(address => uint256) public minTokenBalance;
+  uint256 MAX_SLIPPAGE = 1000; // 10%
+  uint256 public SLIPPAGE;
 
   constructor(address _owner, address _guardian) {
     _transferOwnership(_owner);
     _updateGuardian(_guardian);
+    _updateSlippage(150);
   }
 
   /// Steward Actions
@@ -84,11 +87,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
     uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData);
 
-    CU.IOInput memory depositData = CU.IOInput(
-      address(POOLV3),
-      address(reserve),
-      withdrawAmount
-    );
+    CU.IOInput memory depositData = CU.IOInput(address(POOLV3), address(reserve), withdrawAmount);
     CU.depositToV3(COLLECTOR, depositData);
   }
 
@@ -98,8 +97,6 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     uint256 amount,
     address buyToken
   ) external onlyOwnerOrGuardian {
-    _validateSwap(reserve, amount, buyToken);
-
     DataTypesV2.ReserveData memory reserveData = POOLV2.getReserveData(reserve);
 
     address atoken = reserveData.aTokenAddress;
@@ -109,6 +106,8 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
         revert MinimumBalanceShield();
       }
     }
+
+    _validateSwap(reserve, amount, buyToken);
 
     CU.IOInput memory withdrawData = CU.IOInput(address(POOLV3), address(reserve), amount);
 
@@ -122,7 +121,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       priceOracle[reserve],
       priceOracle[buyToken],
       withdrawAmount,
-      1_50
+      SLIPPAGE
     );
 
     CU.swap(COLLECTOR, address(SWAPPER), swapData);
@@ -134,8 +133,6 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     uint256 amount,
     address buyToken
   ) external onlyOwnerOrGuardian {
-    _validateSwap(reserve, amount, buyToken);
-
     DataTypesV3.ReserveDataLegacy memory reserveData = POOLV3.getReserveData(reserve);
     address atoken = reserveData.aTokenAddress;
     if (minTokenBalance[atoken] > 0) {
@@ -144,6 +141,8 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
         revert MinimumBalanceShield();
       }
     }
+
+    _validateSwap(reserve, amount, buyToken);
 
     CU.IOInput memory withdrawData = CU.IOInput(address(POOLV3), address(reserve), amount);
 
@@ -157,7 +156,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       priceOracle[reserve],
       priceOracle[buyToken],
       withdrawAmount,
-      1_50
+      SLIPPAGE
     );
 
     CU.swap(COLLECTOR, address(SWAPPER), swapData);
@@ -169,14 +168,14 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     uint256 amount,
     address buyToken
   ) external onlyOwnerOrGuardian {
-    _validateSwap(sellToken, amount, buyToken);
-
     if (minTokenBalance[sellToken] > 0) {
       uint256 currentBalance = IERC20(sellToken).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[sellToken]) {
         revert MinimumBalanceShield();
       }
     }
+
+    _validateSwap(sellToken, amount, buyToken);
 
     CU.SwapInput memory swapData = CU.SwapInput(
       MILKMAN,
@@ -186,7 +185,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
       priceOracle[sellToken],
       priceOracle[buyToken],
       amount,
-      1_50
+      SLIPPAGE
     );
 
     CU.swap(COLLECTOR, address(SWAPPER), swapData);
@@ -207,29 +206,33 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   }
 
   /// @inheritdoc IFinanceSteward
-  function createStream(
-    address token,
-    address to,
-    uint256 amount,
-    uint256 startDate,
-    uint256 endDate
-  ) external onlyOwnerOrGuardian {
-    _validateTransfer(token, to, amount);
-
-    if (endDate < block.timestamp || endDate < startDate) {
+  function createStream(address to, StreamData memory stream) external onlyOwnerOrGuardian {
+    if (stream.start < block.timestamp || stream.end <= stream.start) {
       revert InvalidDate();
     }
 
-    uint256 duration = endDate - startDate;
+    _validateTransfer(stream.token, to, stream.amount);
 
-    CU.CreateStreamInput memory streamData = CU.CreateStreamInput(token, to, amount, startDate, duration);
+    uint256 duration = stream.end - stream.start;
 
-    CU.stream(COLLECTOR, streamData);
+    CU.CreateStreamInput memory utilsData = CU.CreateStreamInput(
+      stream.token,
+      to,
+      stream.amount,
+      stream.start,
+      duration
+    );
+
+    CU.stream(COLLECTOR, utilsData);
   }
 
   // Not sure if we want this functionality
   function cancelStream(uint256 streamId) external onlyOwnerOrGuardian {
     COLLECTOR.cancelStream(streamId);
+  }
+
+  function updateSlippage(uint256 slippage) external onlyOwnerOrGuardian {
+    _updateSlippage(slippage);
   }
 
   /// DAO Actions
@@ -310,5 +313,12 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   function _updateBudget(address token, uint256 newAmount) internal {
     tokenBudget[token] = newAmount;
     emit BudgetUpdate(token, newAmount);
+  }
+
+  function _updateSlippage(uint256 _slippage) internal {
+    if (_slippage > MAX_SLIPPAGE) {
+      _slippage = MAX_SLIPPAGE;
+    }
+    SLIPPAGE = _slippage;
   }
 }
