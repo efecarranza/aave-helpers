@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
-import {AaveGovernanceV2} from 'aave-address-book/AaveGovernanceV2.sol';
+import {GovernanceV3Ethereum} from 'aave-address-book/GovernanceV3Ethereum.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {FinanceSteward} from '../../src/financestewards/FinanceSteward.sol';
 import {CollectorUtils} from '../../src/financestewards/CollectorUtils.sol';
@@ -25,9 +25,10 @@ contract FinanceSteward_Test is Test {
   function setUp() public {
     vm.createSelectFork(vm.rpcUrl('mainnet'));
     steward = new FinanceSteward(
-      AaveGovernanceV2.SHORT_EXECUTOR,
+      GovernanceV3Ethereum.EXECUTOR_LVL_1,
       guardian
     );
+    vm.prank(0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A);
     collector.setFundsAdmin(address(steward));
     
   }
@@ -76,7 +77,7 @@ contract Function_migrateV2toV3 is FinanceSteward_Test {
   }
 
   function test_resvertsIf_minimumBalanceShield() public {
-    vm.startPrank(AaveGovernanceV2.SHORT_EXECUTOR);
+    vm.startPrank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     steward.setMinimumBalanceShield(AaveV3EthereumAssets.USDC_UNDERLYING, 1_000e6);
 
     vm.startPrank(guardian);
