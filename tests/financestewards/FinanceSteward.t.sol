@@ -7,6 +7,7 @@ import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethe
 import {FinanceSteward} from '../../src/financestewards/FinanceSteward.sol';
 import {CollectorUtils} from '../../src/financestewards/CollectorUtils.sol';
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
+import {ICollector} from 'aave-address-book/common/ICollector.sol';
 
 /**
  * @dev Test for Finance Steward contract
@@ -19,12 +20,16 @@ contract FinanceSteward_Test is Test {
 
   address public alice = address(43);
 
+  ICollector collector = AaveV3Ethereum.COLLECTOR;
+
   function setUp() public {
     vm.createSelectFork(vm.rpcUrl('mainnet'));
     steward = new FinanceSteward(
       AaveGovernanceV2.SHORT_EXECUTOR,
       guardian
     );
+    collector.setFundsAdmin(address(steward));
+    
   }
 }
 
