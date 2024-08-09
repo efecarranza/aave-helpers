@@ -83,8 +83,8 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
         revert MinimumBalanceShield();
       }
     }
-
-    CU.IOInput memory withdrawData = CU.IOInput(address(POOLV3), address(reserve), amount);
+    
+    CU.IOInput memory withdrawData = CU.IOInput(address(POOLV2), address(reserve), amount);
 
     uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData);
 
@@ -110,7 +110,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
     _validateSwap(reserve, amount, buyToken);
 
-    CU.IOInput memory withdrawData = CU.IOInput(address(POOLV3), address(reserve), amount);
+    CU.IOInput memory withdrawData = CU.IOInput(address(POOLV2), address(reserve), amount);
 
     uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData);
 
