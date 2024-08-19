@@ -25,6 +25,7 @@ import {Address} from 'solidity-utils/contracts/oz-common/Address.sol';
 import {Create2Utils} from 'solidity-utils/contracts/utils/ScriptUtils.sol';
 import {StorageHelpers} from './StorageHelpers.sol';
 import {ProxyHelpers} from './ProxyHelpers.sol';
+import {Create2UtilsZkSync} from 'solidity-utils/../zksync/src/contracts/utils/ScriptUtilsZkSync.sol';
 
 interface IGovernance_V2_5 {
   /**
@@ -209,6 +210,35 @@ library GovV3Helpers {
     bytes memory arguments
   ) internal pure returns (address) {
     return Create2Utils.computeCreate2Address('v1', bytecode, arguments);
+  }
+
+  function predictDeterministicAddressZkSync(bytes32 bytecodeHash) internal pure returns (address) {
+    return Create2UtilsZkSync.computeCreate2Address('v1', bytecodeHash);
+  }
+
+  function predictDeterministicAddressZkSync(
+    bytes32 bytecodeHash,
+    bytes memory arguments
+  ) internal pure returns (address) {
+    return Create2UtilsZkSync.computeCreate2Address('v1', bytecodeHash, arguments);
+  }
+
+  function buildActionZkSync(
+    Vm vm,
+    string memory contractName
+  ) internal view returns (IPayloadsControllerCore.ExecutionAction memory) {
+    bytes32 bytecodeHash = _getBytecodeHashFromArtifacts(vm, contractName);
+    address payloadAddress = predictDeterministicAddressZkSync(bytecodeHash);
+    return buildAction(payloadAddress);
+  }
+
+  function _getBytecodeHashFromArtifacts(Vm vm, string memory contractName) private view returns (bytes32 bytecodeHash) {
+    string memory artifactPath = string.concat('zkout/', contractName, '.sol/', contractName, '.json');
+    string memory artifact = vm.readFile(artifactPath);
+    bytecodeHash = vm.parseJsonBytes32(artifact, ".hash");
+
+    require(bytecodeHash != (bytes32(0)), 'Unable to fetch bytecodeHash from the zkout artifacts');
+    return bytecodeHash;
   }
 
   /**
