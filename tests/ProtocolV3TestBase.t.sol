@@ -2,13 +2,14 @@
 pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
-import {ProtocolV3LegacyTestBase, ProtocolV3TestBase, ReserveConfig} from '../src/ProtocolV3TestBase.sol';
+import {ProtocolV3TestBase, ReserveConfig} from '../src/ProtocolV3TestBase.sol';
 import {AaveV3Ethereum} from 'aave-address-book/AaveV3Ethereum.sol';
 import {AaveV3Polygon, AaveV3PolygonAssets} from 'aave-address-book/AaveV3Polygon.sol';
 import {AaveV3Optimism, AaveV3OptimismAssets} from 'aave-address-book/AaveV3Optimism.sol';
 import {AaveV3Arbitrum, AaveV3ArbitrumAssets} from 'aave-address-book/AaveV3Arbitrum.sol';
 import {AaveV3Avalanche, AaveV3AvalancheAssets} from 'aave-address-book/AaveV3Avalanche.sol';
 import {AaveV3Metis} from 'aave-address-book/AaveV3Metis.sol';
+import {AaveV3Fantom} from 'aave-address-book/AaveV3Fantom.sol';
 import {PayloadWithEmit} from './mocks/PayloadWithEmit.sol';
 
 contract ProtocolV3TestBaseTest is ProtocolV3TestBase {
@@ -63,7 +64,7 @@ contract ProtocolV3TestE2ETestAsset is ProtocolV3TestBase {
 
 contract ProtocolV3TestE2ETestOptimismAll is ProtocolV3TestBase {
   function setUp() public {
-    vm.createSelectFork('optimism', 105213914);
+    vm.createSelectFork('optimism', 123145540);
   }
 
   function test_e2e() public {
@@ -111,7 +112,7 @@ contract ProtocolV3TestE2ETestArbitrumAll is ProtocolV3TestBase {
 
 contract ProtocolV3TestE2ETestAllMainnet is ProtocolV3TestBase {
   function setUp() public {
-    vm.createSelectFork('mainnet', 18763779);
+    vm.createSelectFork('mainnet', 19477376);
   }
 
   function test_e2e() public {
@@ -119,12 +120,23 @@ contract ProtocolV3TestE2ETestAllMainnet is ProtocolV3TestBase {
   }
 }
 
-contract ProtocolV3TestE2ETestSnapshot is ProtocolV3TestBase {
+contract ProtocolV3TestOptimismSnapshot is ProtocolV3TestBase {
   function setUp() public {
-    vm.createSelectFork('optimism', 105213914);
+    vm.createSelectFork('optimism', 117408311);
   }
 
   function test_snapshot() public {
     createConfigurationSnapshot('snapshot', AaveV3Optimism.POOL, true, false, false, false);
+  }
+}
+
+
+contract ProtocolV3TestFantomSnapshot is ProtocolV3TestBase {
+  function setUp() public {
+    vm.createSelectFork('fantom', 86731015);
+  }
+
+  function test_snapshot() public {
+    createConfigurationSnapshot('snapshotFtm', AaveV3Fantom.POOL, true, false, false, false);
   }
 }

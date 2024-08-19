@@ -8,11 +8,12 @@ import {IERC20Metadata} from 'solidity-utils/contracts/oz-common/interfaces/IERC
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
 import {AaveV2EthereumAMM} from 'aave-address-book/AaveV2EthereumAMM.sol';
 import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
+import {DiffUtils} from 'aave-v3-origin/../tests/utils/DiffUtils.sol';
+import {ChainIds} from 'solidity-utils/contracts/utils/ChainHelpers.sol';
 import {IInitializableAdminUpgradeabilityProxy} from './interfaces/IInitializableAdminUpgradeabilityProxy.sol';
 import {ExtendedAggregatorV2V3Interface} from './interfaces/ExtendedAggregatorV2V3Interface.sol';
 import {CommonTestBase, ReserveTokens} from './CommonTestBase.sol';
 import {ProxyHelpers} from './ProxyHelpers.sol';
-import {ChainIds} from './ChainIds.sol';
 
 struct ReserveConfig {
   string symbol;
@@ -48,7 +49,7 @@ struct InterestStrategyValues {
   uint256 variableRateSlope2;
 }
 
-contract ProtocolV2TestBase is CommonTestBase {
+contract ProtocolV2TestBase is CommonTestBase, DiffUtils {
   using SafeERC20 for IERC20;
 
   /**
@@ -330,36 +331,35 @@ contract ProtocolV2TestBase is CommonTestBase {
     // keys for json stringification
     string memory strategiesKey = 'stategies';
     string memory content = '{}';
+    vm.serializeJson(strategiesKey, '{}');
 
-    address[] memory usedStrategies = new address[](configs.length);
     for (uint256 i = 0; i < configs.length; i++) {
-      if (!_isInAddressArray(usedStrategies, configs[i].interestRateStrategy)) {
-        usedStrategies[i] = configs[i].interestRateStrategy;
-        IDefaultInterestRateStrategy strategy = IDefaultInterestRateStrategy(
-          configs[i].interestRateStrategy
-        );
-        string memory key = vm.toString(address(strategy));
-        vm.serializeString(key, 'stableRateSlope1', vm.toString(strategy.stableRateSlope1()));
-        vm.serializeString(key, 'stableRateSlope2', vm.toString(strategy.stableRateSlope2()));
-        vm.serializeString(
-          key,
-          'baseVariableBorrowRate',
-          vm.toString(strategy.baseVariableBorrowRate())
-        );
-        vm.serializeString(key, 'variableRateSlope1', vm.toString(strategy.variableRateSlope1()));
-        vm.serializeString(key, 'variableRateSlope2', vm.toString(strategy.variableRateSlope2()));
-        vm.serializeString(
-          key,
-          'optimalUsageRatio',
-          vm.toString(strategy.OPTIMAL_UTILIZATION_RATE())
-        );
-        string memory object = vm.serializeString(
-          key,
-          'maxExcessUsageRatio',
-          vm.toString(strategy.EXCESS_UTILIZATION_RATE())
-        );
-        content = vm.serializeString(strategiesKey, key, object);
-      }
+      IDefaultInterestRateStrategy strategy = IDefaultInterestRateStrategy(
+        configs[i].interestRateStrategy
+      );
+      string memory key = vm.toString(configs[i].underlying);
+      vm.serializeJson(key, '{}');
+      vm.serializeString(key, 'address', vm.toString(address(strategy)));
+      vm.serializeString(key, 'stableRateSlope1', vm.toString(strategy.stableRateSlope1()));
+      vm.serializeString(key, 'stableRateSlope2', vm.toString(strategy.stableRateSlope2()));
+      vm.serializeString(
+        key,
+        'baseVariableBorrowRate',
+        vm.toString(strategy.baseVariableBorrowRate())
+      );
+      vm.serializeString(key, 'variableRateSlope1', vm.toString(strategy.variableRateSlope1()));
+      vm.serializeString(key, 'variableRateSlope2', vm.toString(strategy.variableRateSlope2()));
+      vm.serializeString(
+        key,
+        'optimalUsageRatio',
+        vm.toString(strategy.OPTIMAL_UTILIZATION_RATE())
+      );
+      string memory object = vm.serializeString(
+        key,
+        'maxExcessUsageRatio',
+        vm.toString(strategy.EXCESS_UTILIZATION_RATE())
+      );
+      content = vm.serializeString(strategiesKey, key, object);
     }
     string memory output = vm.serializeString('root', 'strategies', content);
     vm.writeJson(output, path);
@@ -427,6 +427,7 @@ contract ProtocolV2TestBase is CommonTestBase {
     // keys for json stringification
     string memory reservesKey = 'reserves';
     string memory content = '{}';
+    vm.serializeJson(reservesKey, '{}');
 
     ILendingPoolAddressesProvider addressesProvider = ILendingPoolAddressesProvider(
       pool.getAddressesProvider()
@@ -440,6 +441,7 @@ contract ProtocolV2TestBase is CommonTestBase {
       );
 
       string memory key = vm.toString(config.underlying);
+      vm.serializeJson(key, '{}');
       vm.serializeString(key, 'symbol', config.symbol);
       vm.serializeString(
         key,
@@ -939,5 +941,33 @@ contract ProtocolV2TestBase is CommonTestBase {
       oracle.getSourceOfAsset(asset) == expectedSource,
       '_validateAssetSourceOnOracle() : INVALID_PRICE_SOURCE'
     );
+  }
+
+  function _isInUint256Array(
+    uint256[] memory haystack,
+    uint256 needle
+  ) internal pure returns (bool) {
+    for (uint256 i = 0; i < haystack.length; i++) {
+      if (haystack[i] == needle) return true;
+    }
+    return false;
+  }
+
+  function _isInAddressArray(
+    address[] memory haystack,
+    address needle
+  ) internal pure returns (bool) {
+    for (uint256 i = 0; i < haystack.length; i++) {
+      if (haystack[i] == needle) return true;
+    }
+    return false;
+  }
+
+  /**
+   * @dev forwards time by x blocks
+   */
+  function _skipBlocks(uint128 blocks) internal {
+    vm.roll(block.number + blocks);
+    vm.warp(block.timestamp + blocks * 12); // assuming a block is around 12seconds
   }
 }

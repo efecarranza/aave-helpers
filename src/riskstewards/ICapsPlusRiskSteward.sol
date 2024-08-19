@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IACLManager, IPoolConfigurator, IPoolDataProvider} from 'aave-address-book/AaveV3.sol';
 import {Address} from 'solidity-utils/contracts/oz-common/Address.sol';
-import {EngineFlags} from '../v3-config-engine/EngineFlags.sol';
-import {IAaveV3ConfigEngine} from '../v3-config-engine/IAaveV3ConfigEngine.sol';
+import {EngineFlags} from 'aave-v3-origin/periphery/contracts/v3-config-engine/EngineFlags.sol';
+import {IAaveV3ConfigEngine} from 'aave-v3-origin/periphery/contracts/v3-config-engine/IAaveV3ConfigEngine.sol';
 
 /**
  * @title ICapsPlusRiskSteward
@@ -13,7 +13,7 @@ import {IAaveV3ConfigEngine} from '../v3-config-engine/IAaveV3ConfigEngine.sol';
  */
 interface ICapsPlusRiskSteward {
   /**
-   * @notice Stuct storing the last update of a specific cap
+   * @notice Struct storing the last update of a specific cap
    */
   struct Debounce {
     uint40 supplyCapLastUpdated;
@@ -23,7 +23,7 @@ interface ICapsPlusRiskSteward {
   /**
    * @notice The minimum delay that must be respected between updating a specific cap twice
    */
-  function MINIMUM_DELAY() external pure returns (uint256);
+  function MINIMUM_DELAY() external view returns (uint256);
 
   /**
    * @notice The config engine used to perform the cap update via delegatecall
@@ -41,7 +41,7 @@ interface ICapsPlusRiskSteward {
   function RISK_COUNCIL() external view returns (address);
 
   /**
-   * @notice Allows increasing borrow and supply caps accross multiple assets
+   * @notice Allows increasing borrow and supply caps across multiple assets
    * @dev A cap increase is only possible ever 5 days per asset
    * @dev A cap increase is only allowed to increase the cap by 50%
    * @param capUpdates caps to be updated

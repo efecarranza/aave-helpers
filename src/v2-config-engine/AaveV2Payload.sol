@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {Address} from 'solidity-utils/contracts/oz-common/Address.sol';
-import {WadRayMath} from 'aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol';
+import {WadRayMath} from 'aave-v3-origin/core/contracts/protocol/libraries/math/WadRayMath.sol';
 import {IAaveV2ConfigEngine as IEngine} from './IAaveV2ConfigEngine.sol';
 import {IV2RateStrategyFactory} from './IV2RateStrategyFactory.sol';
-import {EngineFlags} from '../v3-config-engine/EngineFlags.sol';
+import {EngineFlags} from 'aave-v3-origin/periphery/contracts/v3-config-engine/EngineFlags.sol';
 
 /**
  * @dev Base smart contract for an Aave v3.0.1 configs update.
@@ -25,10 +25,10 @@ abstract contract AaveV2Payload {
     LISTING_ENGINE = engine;
   }
 
-  /// @dev to be overriden on the child if any extra logic is needed pre-listing
+  /// @dev to be overridden on the child if any extra logic is needed pre-listing
   function _preExecute() internal virtual {}
 
-  /// @dev to be overriden on the child if any extra logic is needed post-listing
+  /// @dev to be overridden on the child if any extra logic is needed post-listing
   function _postExecute() internal virtual {}
 
   function execute() external {

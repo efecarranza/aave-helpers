@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import {Vm} from 'forge-std/Vm.sol';
-import {ChainIds, ChainHelpers} from './ChainIds.sol';
+import {ChainIds, ChainHelpers} from 'solidity-utils/contracts/utils/ChainHelpers.sol';
 import {IpfsUtils} from './IpfsUtils.sol';
 import {console2} from 'forge-std/console2.sol';
 import {PayloadsControllerUtils, IGovernancePowerStrategy, IPayloadsControllerCore, IGovernanceCore} from 'aave-address-book/GovernanceV3.sol';
@@ -19,12 +19,13 @@ import {GovernanceV3BNB} from 'aave-address-book/GovernanceV3BNB.sol';
 import {GovernanceV3Gnosis} from 'aave-address-book/GovernanceV3Gnosis.sol';
 import {GovernanceV3Scroll} from 'aave-address-book/GovernanceV3Scroll.sol';
 import {GovernanceV3PolygonZkEvm} from 'aave-address-book/GovernanceV3PolygonZkEvm.sol';
+import {GovernanceV3ZkSync} from 'aave-address-book/GovernanceV3ZkSync.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 import {Address} from 'solidity-utils/contracts/oz-common/Address.sol';
+import {Create2Utils} from 'solidity-utils/contracts/utils/ScriptUtils.sol';
 import {StorageHelpers} from './StorageHelpers.sol';
 import {ProxyHelpers} from './ProxyHelpers.sol';
-import {GovHelpers, IAaveGovernanceV2} from './GovHelpers.sol';
-import {Create2Utils} from './ScriptUtils.sol';
+import {Create2UtilsZkSync} from 'solidity-utils/../zksync/src/contracts/utils/ScriptUtilsZkSync.sol';
 
 interface IGovernance_V2_5 {
   /**
@@ -70,6 +71,7 @@ library GovV3Helpers {
   error ExecutorNotFound();
   error LongBytesNotSupportedYet();
   error FfiFailed();
+  error PayloadAlreadyCreated();
 
   struct StorageRootResponse {
     address account;
@@ -95,7 +97,7 @@ library GovV3Helpers {
   ) internal returns (IVotingMachineWithProofs.VotingBalanceProof[] memory) {
     string[] memory inputs = new string[](8);
     inputs[0] = 'npx';
-    inputs[1] = '@bgd-labs/aave-cli@^0.7.0';
+    inputs[1] = '@bgd-labs/aave-cli@^0.16.2';
     inputs[2] = 'governance';
     inputs[3] = 'getVotingProofs';
     inputs[4] = '--proposalId';
@@ -121,7 +123,7 @@ library GovV3Helpers {
   ) internal returns (StorageRootResponse[] memory) {
     string[] memory inputs = new string[](6);
     inputs[0] = 'npx';
-    inputs[1] = '@bgd-labs/aave-cli@^0.7.0';
+    inputs[1] = '@bgd-labs/aave-cli@^0.16.2';
     inputs[2] = 'governance';
     inputs[3] = 'getStorageRoots';
     inputs[4] = '--proposalId';
@@ -156,6 +158,32 @@ library GovV3Helpers {
     IVotingMachineWithProofs(machine).submitVote(proposalId, support, votingBalanceProofs);
   }
 
+  // Deploys using the unsanitized bytecodeHash we get via `type(Contract).creationCode`
+  function deployDeterministicZkSync(bytes memory bytecodeHash) internal returns (address) {
+    return Create2UtilsZkSync.create2Deploy('v1', bytecodeHash);
+  }
+
+  // Deploys using the unsanitized bytecodeHash we get via `type(Contract).creationCode`
+  function deployDeterministicZkSync(
+    bytes memory bytecodeHash,
+    bytes memory arguments
+  ) internal returns (address) {
+    return Create2UtilsZkSync.create2Deploy('v1', bytecodeHash, arguments);
+  }
+
+  // Deploys using the sanitized bytecodeHash
+  function deployDeterministicZkSync(bytes32 bytecodeHash) internal returns (address) {
+    return Create2UtilsZkSync.create2Deploy('v1', bytecodeHash);
+  }
+
+  // Deploys using the sanitized bytecodeHash
+  function deployDeterministicZkSync(
+    bytes32 bytecodeHash,
+    bytes memory arguments
+  ) internal returns (address) {
+    return Create2UtilsZkSync.create2Deploy('v1', bytecodeHash, arguments);
+  }
+
   /**
    * Deploys a contract with a constant salt
    */
@@ -163,11 +191,54 @@ library GovV3Helpers {
     return Create2Utils.create2Deploy('v1', bytecode);
   }
 
+  function deployDeterministic(
+    bytes memory bytecode,
+    bytes memory arguments
+  ) internal returns (address) {
+    return Create2Utils.create2Deploy('v1', bytecode, arguments);
+  }
+
   /**
    * Predicts the payload based on a constant salt
    */
   function predictDeterministicAddress(bytes memory bytecode) internal pure returns (address) {
     return Create2Utils.computeCreate2Address('v1', bytecode);
+  }
+
+  function predictDeterministicAddress(
+    bytes memory bytecode,
+    bytes memory arguments
+  ) internal pure returns (address) {
+    return Create2Utils.computeCreate2Address('v1', bytecode, arguments);
+  }
+
+  function predictDeterministicAddressZkSync(bytes32 bytecodeHash) internal pure returns (address) {
+    return Create2UtilsZkSync.computeCreate2Address('v1', bytecodeHash);
+  }
+
+  function predictDeterministicAddressZkSync(
+    bytes32 bytecodeHash,
+    bytes memory arguments
+  ) internal pure returns (address) {
+    return Create2UtilsZkSync.computeCreate2Address('v1', bytecodeHash, arguments);
+  }
+
+  function buildActionZkSync(
+    Vm vm,
+    string memory contractName
+  ) internal view returns (IPayloadsControllerCore.ExecutionAction memory) {
+    bytes32 bytecodeHash = _getBytecodeHashFromArtifacts(vm, contractName);
+    address payloadAddress = predictDeterministicAddressZkSync(bytecodeHash);
+    return buildAction(payloadAddress);
+  }
+
+  function _getBytecodeHashFromArtifacts(Vm vm, string memory contractName) private view returns (bytes32 bytecodeHash) {
+    string memory artifactPath = string.concat('zkout/', contractName, '.sol/', contractName, '.json');
+    string memory artifact = vm.readFile(artifactPath);
+    bytecodeHash = vm.parseJsonBytes32(artifact, ".hash");
+
+    require(bytecodeHash != (bytes32(0)), 'Unable to fetch bytecodeHash from the zkout artifacts');
+    return bytecodeHash;
   }
 
   /**
@@ -183,6 +254,14 @@ library GovV3Helpers {
     bytes memory bytecode
   ) internal pure returns (IPayloadsControllerCore.ExecutionAction memory) {
     address payloadAddress = predictDeterministicAddress(bytecode);
+    return buildAction(payloadAddress);
+  }
+
+  function buildAction(
+    bytes memory bytecode,
+    bytes memory arguments
+  ) internal pure returns (IPayloadsControllerCore.ExecutionAction memory) {
+    address payloadAddress = predictDeterministicAddress(bytecode, arguments);
     return buildAction(payloadAddress);
   }
 
@@ -214,7 +293,7 @@ library GovV3Helpers {
    * @param payloadAddress address of the payload to be executed
    * @param accessLevel accessLevel required by the payload
    * @param value eth value to be sent to the payload
-   * @param withDelegateCall determines if payload thould be executed via delgatecall
+   * @param withDelegateCall determines if payload should be executed via delgatecall
    * @param signature signature to be executed on the payload
    * @param callData calldata for the signature
    */
@@ -254,7 +333,15 @@ library GovV3Helpers {
     IPayloadsControllerCore payloadsController = getPayloadsController(block.chainid);
     require(actions.length > 0, 'INVALID ACTIONS');
 
-    return payloadsController.createPayload(actions);
+    (, IPayloadsControllerCore.Payload memory payload, bool payloadCreated) = _findCreatedPayload(
+      payloadsController,
+      actions
+    );
+    if (payloadCreated && payload.createdAt > block.timestamp - 7 days) {
+      revert PayloadAlreadyCreated();
+    } else {
+      return payloadsController.createPayload(actions);
+    }
   }
 
   function createPayload(
@@ -284,12 +371,24 @@ library GovV3Helpers {
 
   /**
    * @dev executes a payloadAddress via payloadsController by injecting it into storage and executing it afterwards.
-   * Injecting into storage is a convinience method to reduce the txs executed from 2 to 1, this allows awaiting emitted events on the payloadsController.
+   * Injecting into storage is a convenience method to reduce the txs executed from 2 to 1, this allows awaiting emitted events on the payloadsController.
    * @notice This method is for test purposes only.
    * @param vm Vm
    * @param payloadAddress address of the payload to execute
    */
   function executePayload(Vm vm, address payloadAddress) internal {
+    IPayloadsControllerCore payloadsController = getPayloadsController(block.chainid);
+    payloadsController.executePayload(readyPayload(vm, payloadAddress));
+  }
+
+  /**
+   * @dev prepares a payloadAddress for execution via payloadsController by injecting it into storage and changing state to ReadyForExecution afterwards.
+   * Injecting into storage is a convenience method to reduce the txs executed from 2 to 1, this allows awaiting emitted events on the payloadsController.
+   * @notice This method is for test purposes only.
+   * @param vm Vm
+   * @param payloadAddress address of the payload to execute
+   */
+  function readyPayload(Vm vm, address payloadAddress) internal returns (uint40) {
     require(Address.isContract(payloadAddress), 'PAYLOAD_ADDRESS_HAS_NO_CODE');
     IPayloadsControllerCore payloadsController = getPayloadsController(block.chainid);
     IPayloadsControllerCore.ExecutionAction[]
@@ -297,7 +396,7 @@ library GovV3Helpers {
     actions[0] = buildAction(payloadAddress);
     uint40 payloadId = GovV3StorageHelpers.injectPayload(vm, payloadsController, actions);
     GovV3StorageHelpers.readyPayloadId(vm, payloadsController, payloadId);
-    payloadsController.executePayload(payloadId);
+    return payloadId;
   }
 
   /**
@@ -565,6 +664,30 @@ library GovV3Helpers {
   }
 
   /**
+   * Builds a payload to be executed via governance
+   * @param vm Vm
+   * @param actions actions array
+   */
+  function buildZkSyncPayload(
+    Vm vm,
+    IPayloadsControllerCore.ExecutionAction[] memory actions
+  ) internal returns (PayloadsControllerUtils.Payload memory) {
+    return _buildPayload(vm, ChainIds.ZKSYNC, actions);
+  }
+
+  /**
+   * Builds a payload to be executed via governance
+   * @param vm Vm
+   * @param action actions array
+   */
+  function buildZkSyncPayload(
+    Vm vm,
+    IPayloadsControllerCore.ExecutionAction memory action
+  ) internal returns (PayloadsControllerUtils.Payload memory) {
+    return _buildPayload(vm, ChainIds.ZKSYNC, action);
+  }
+
+  /**
    * @dev creates a proposal with multiple payloads
    * @param vm Vm
    * @param payloads payloads array
@@ -579,44 +702,13 @@ library GovV3Helpers {
   }
 
   /**
-   * @dev Executes an already created proposal on governance v3 by manipulating stororage so it#s executable in the current block.
+   * @dev Executes an already created proposal on governance v3 by manipulating storage so it#s executable in the current block.
    * @param vm Vm
    * @param proposalId id of the proposal to execute
    */
   function executeProposal(Vm vm, uint256 proposalId) internal {
     GovV3StorageHelpers.readyProposal(vm, proposalId);
     GovernanceV3Ethereum.GOVERNANCE.executeProposal(proposalId);
-  }
-
-  function build2_5Payload(
-    PayloadsControllerUtils.Payload memory payload
-  ) internal returns (GovHelpers.Payload memory) {
-    return
-      GovHelpers.Payload({
-        target: address(GovernanceV3Ethereum.GOVERNANCE),
-        value: 0,
-        signature: 'forwardPayloadForExecution((uint256,uint8,address,uint40))',
-        callData: abi.encode(payload),
-        withDelegatecall: false
-      });
-  }
-
-  // temporarily patched create proposal for governance v2.5
-  function createProposal2_5(
-    Vm vm,
-    PayloadsControllerUtils.Payload[] memory payloads,
-    bytes32 ipfsHash
-  ) internal returns (uint256) {
-    require(block.chainid == ChainIds.MAINNET, 'MAINNET_ONLY');
-    require(payloads.length != 0, 'MINIMUM_ONE_PAYLOAD');
-    require(ipfsHash != bytes32(0), 'NON_ZERO_IPFS_HASH');
-
-    generateProposalPreviewLink(vm, payloads, ipfsHash, address(0));
-    GovHelpers.Payload[] memory gov2Payloads = new GovHelpers.Payload[](payloads.length);
-    for (uint256 i = 0; i < payloads.length; i++) {
-      gov2Payloads[i] = build2_5Payload(payloads[i]);
-    }
-    return GovHelpers.createProposal(gov2Payloads, ipfsHash, true);
   }
 
   /**
@@ -674,6 +766,8 @@ library GovV3Helpers {
       return GovernanceV3Scroll.PAYLOADS_CONTROLLER;
     } else if (chainId == ChainIds.ZK_EVM) {
       return GovernanceV3PolygonZkEvm.PAYLOADS_CONTROLLER;
+    } else if (chainId == ChainIds.ZKSYNC) {
+      return GovernanceV3ZkSync.PAYLOADS_CONTROLLER;
     }
 
     revert CannotFindPayloadsController();
@@ -791,27 +885,44 @@ library GovV3Helpers {
     return (payload.maximumAccessLevelRequired, payloadId);
   }
 
-  function _findPayloadId(
+  function _findCreatedPayload(
     IPayloadsControllerCore payloadsController,
     IPayloadsControllerCore.ExecutionAction[] memory actions
-  ) private view returns (uint40, IPayloadsControllerCore.Payload memory) {
+  ) private view returns (uint40, IPayloadsControllerCore.Payload memory, bool) {
     uint40 count = payloadsController.getPayloadsCount();
     for (uint40 payloadId = count; payloadId > 0; payloadId--) {
       IPayloadsControllerCore.Payload memory payload = payloadsController.getPayloadById(
         payloadId - 1
       );
       if (_actionsAreEqual(actions, payload.actions)) {
-        return (payloadId - 1, payload);
+        return (payloadId - 1, payload, true);
       }
     }
-    revert CannotFindPayload();
+    IPayloadsControllerCore.Payload memory emptyPayload;
+    return (type(uint40).max, emptyPayload, false);
+  }
+
+  function _findPayloadId(
+    IPayloadsControllerCore payloadsController,
+    IPayloadsControllerCore.ExecutionAction[] memory actions
+  ) private view returns (uint40, IPayloadsControllerCore.Payload memory) {
+    (
+      uint40 payloadId,
+      IPayloadsControllerCore.Payload memory payload,
+      bool payloadCreated
+    ) = _findCreatedPayload(payloadsController, actions);
+    if (payloadCreated) {
+      return (payloadId, payload);
+    } else {
+      revert CannotFindPayload();
+    }
   }
 
   function _actionsAreEqual(
     IPayloadsControllerCore.ExecutionAction[] memory actionsA,
     IPayloadsControllerCore.ExecutionAction[] memory actionsB
   ) private pure returns (bool) {
-    // must be equal size for equlity
+    // must be equal size for equality
     if (actionsA.length != actionsB.length) return false;
     for (uint256 actionId = 0; actionId < actionsA.length; actionId++) {
       if (actionsA[actionId].target != actionsB[actionId].target) return false;
@@ -876,7 +987,7 @@ library GovV3StorageHelpers {
   function injectProposal(
     Vm vm,
     PayloadsControllerUtils.Payload[] memory payloads,
-    address votingPortal
+    address // supposed to be votingPortal, kept to not introduce breaking change, but mute compilation warning
   ) internal returns (uint256) {
     uint256 count = GovernanceV3Ethereum.GOVERNANCE.getProposalsCount();
     uint256 proposalBaseSlot = StorageHelpers.getStorageSlotUintMapping(PROPOSALS_SLOT, count);
@@ -887,7 +998,7 @@ library GovV3StorageHelpers {
       bytes32(PROPOSALS_COUNT_SLOT),
       bytes32(uint256(count + 1))
     );
-    // overwrite creator as creator porposition power is checked on execution
+    // overwrite creator as creator proposition power is checked on execution
     vm.store(
       address(GovernanceV3Ethereum.GOVERNANCE),
       bytes32(proposalBaseSlot + 1),

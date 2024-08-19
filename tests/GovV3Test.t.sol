@@ -22,8 +22,10 @@ contract GovernanceV3Test is ProtocolV3TestBase {
 
   PayloadWithEmit payload;
 
+  uint256 public constant BLOCK_NUMBER = 20381808;
+
   function setUp() public {
-    vm.createSelectFork('mainnet', 18993187);
+    vm.createSelectFork('mainnet', BLOCK_NUMBER);
     payload = new PayloadWithEmit();
   }
 
@@ -91,10 +93,10 @@ contract GovernanceV3Test is ProtocolV3TestBase {
     GovV3StorageHelpers.readyPayloadId(vm, payloadsController, payloadId);
     IPayloadsControllerCore.Payload memory pl = payloadsController.getPayloadById(payloadId);
     assertEq(uint256(pl.state), uint256(IPayloadsControllerCore.PayloadState.Queued));
-    assertEq(pl.queuedAt, 1705004722);
+    assertEq(pl.queuedAt, block.timestamp - pl.delay -1);
     assertEq(uint256(pl.maximumAccessLevelRequired), 1);
     assertEq(pl.createdAt, block.timestamp);
-    assertEq(pl.creator, address(0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496));
+    assertEq(pl.creator, address(this));
   }
 
   /**
@@ -148,6 +150,23 @@ contract GovernanceV3Test is ProtocolV3TestBase {
     vm.startPrank(MiscEthereum.ECOSYSTEM_RESERVE);
     GovV3Helpers.createProposal(vm, payloads, 'hash');
     vm.stopPrank();
+  }
+
+  function xtest_payloadCreationWhenPayloadAlreadyCreated() public {
+    // 1. deploy payloads
+    PayloadWithEmit pl1 = new PayloadWithEmit();
+    PayloadWithEmit pl2 = new PayloadWithEmit();
+
+    // 2. create action & register action
+    IPayloadsControllerCore.ExecutionAction[]
+      memory actions = new IPayloadsControllerCore.ExecutionAction[](2);
+    actions[0] = GovV3Helpers.buildAction(address(pl1));
+    actions[1] = GovV3Helpers.buildAction(address(pl2));
+    GovV3Helpers.createPayload(actions);
+
+    // 3. create same payload
+    vm.expectRevert(GovV3Helpers.PayloadAlreadyCreated.selector);
+    GovV3Helpers.createPayload(actions);
   }
 
   function test_helpers() public {

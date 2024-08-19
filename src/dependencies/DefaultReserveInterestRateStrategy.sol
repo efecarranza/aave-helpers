@@ -3,7 +3,7 @@
 pragma solidity >=0.6.12;
 
 import {SafeMath} from '../dependencies/SafeMath.sol';
-import {IReserveInterestRateStrategy} from '../dependencies/IReserveInterestRateStrategy.sol';
+import {IReserveInterestRateStrategy} from './IReserveInterestRateStrategy.sol';
 import {WadRayMath} from '../dependencies/WadRayMath.sol';
 import {PercentageMath} from '../dependencies/PercentageMath.sol';
 import {ILendingPoolAddressesProvider, ILendingRateOracle} from 'aave-address-book/AaveV2.sol';
@@ -56,21 +56,21 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
 
   constructor(
     ILendingPoolAddressesProvider provider,
-    uint256 optimalUtilizationRate,
-    uint256 baseVariableBorrowRate,
-    uint256 variableRateSlope1,
-    uint256 variableRateSlope2,
-    uint256 stableRateSlope1,
-    uint256 stableRateSlope2
-  ) public {
-    OPTIMAL_UTILIZATION_RATE = optimalUtilizationRate;
-    EXCESS_UTILIZATION_RATE = WadRayMath.ray().sub(optimalUtilizationRate);
+    uint256 optimalUtilizationRate_,
+    uint256 baseVariableBorrowRate_,
+    uint256 variableRateSlope1_,
+    uint256 variableRateSlope2_,
+    uint256 stableRateSlope1_,
+    uint256 stableRateSlope2_
+  ) {
+    OPTIMAL_UTILIZATION_RATE = optimalUtilizationRate_;
+    EXCESS_UTILIZATION_RATE = WadRayMath.ray().sub(optimalUtilizationRate_);
     addressesProvider = provider;
-    _baseVariableBorrowRate = baseVariableBorrowRate;
-    _variableRateSlope1 = variableRateSlope1;
-    _variableRateSlope2 = variableRateSlope2;
-    _stableRateSlope1 = stableRateSlope1;
-    _stableRateSlope2 = stableRateSlope2;
+    _baseVariableBorrowRate = baseVariableBorrowRate_;
+    _variableRateSlope1 = variableRateSlope1_;
+    _variableRateSlope2 = variableRateSlope2_;
+    _stableRateSlope1 = stableRateSlope1_;
+    _stableRateSlope2 = stableRateSlope2_;
   }
 
   function variableRateSlope1() external view returns (uint256) {
@@ -124,13 +124,13 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
 
     return
       calculateInterestRates(
-        reserve,
-        availableLiquidity,
-        totalStableDebt,
-        totalVariableDebt,
-        averageStableBorrowRate,
-        reserveFactor
-      );
+      reserve,
+      availableLiquidity,
+      totalStableDebt,
+      totalVariableDebt,
+      averageStableBorrowRate,
+      reserveFactor
+    );
   }
 
   struct CalcInterestRatesLocalVars {
