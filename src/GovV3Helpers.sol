@@ -19,6 +19,7 @@ import {GovernanceV3BNB} from 'aave-address-book/GovernanceV3BNB.sol';
 import {GovernanceV3Gnosis} from 'aave-address-book/GovernanceV3Gnosis.sol';
 import {GovernanceV3Scroll} from 'aave-address-book/GovernanceV3Scroll.sol';
 import {GovernanceV3PolygonZkEvm} from 'aave-address-book/GovernanceV3PolygonZkEvm.sol';
+import {GovernanceV3ZkSync} from 'aave-address-book/GovernanceV3ZkSync.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 import {Address} from 'solidity-utils/contracts/oz-common/Address.sol';
 import {Create2Utils} from 'solidity-utils/contracts/utils/ScriptUtils.sol';
@@ -154,6 +155,32 @@ library GovV3Helpers {
     uint256 chainId = IVotingPortal(proposal.votingPortal).VOTING_MACHINE_CHAIN_ID();
     ChainHelpers.selectChain(vm, chainId);
     IVotingMachineWithProofs(machine).submitVote(proposalId, support, votingBalanceProofs);
+  }
+
+  // Deploys using the unsanitized bytecodeHash we get via `type(Contract).creationCode`
+  function deployDeterministicZkSync(bytes memory bytecodeHash) internal returns (address) {
+    return Create2UtilsZkSync.create2Deploy('v1', bytecodeHash);
+  }
+
+  // Deploys using the unsanitized bytecodeHash we get via `type(Contract).creationCode`
+  function deployDeterministicZkSync(
+    bytes memory bytecodeHash,
+    bytes memory arguments
+  ) internal returns (address) {
+    return Create2UtilsZkSync.create2Deploy('v1', bytecodeHash, arguments);
+  }
+
+  // Deploys using the sanitized bytecodeHash
+  function deployDeterministicZkSync(bytes32 bytecodeHash) internal returns (address) {
+    return Create2UtilsZkSync.create2Deploy('v1', bytecodeHash);
+  }
+
+  // Deploys using the sanitized bytecodeHash
+  function deployDeterministicZkSync(
+    bytes32 bytecodeHash,
+    bytes memory arguments
+  ) internal returns (address) {
+    return Create2UtilsZkSync.create2Deploy('v1', bytecodeHash, arguments);
   }
 
   /**
@@ -607,6 +634,30 @@ library GovV3Helpers {
   }
 
   /**
+   * Builds a payload to be executed via governance
+   * @param vm Vm
+   * @param actions actions array
+   */
+  function buildZkSyncPayload(
+    Vm vm,
+    IPayloadsControllerCore.ExecutionAction[] memory actions
+  ) internal returns (PayloadsControllerUtils.Payload memory) {
+    return _buildPayload(vm, ChainIds.ZKSYNC, actions);
+  }
+
+  /**
+   * Builds a payload to be executed via governance
+   * @param vm Vm
+   * @param action actions array
+   */
+  function buildZkSyncPayload(
+    Vm vm,
+    IPayloadsControllerCore.ExecutionAction memory action
+  ) internal returns (PayloadsControllerUtils.Payload memory) {
+    return _buildPayload(vm, ChainIds.ZKSYNC, action);
+  }
+
+  /**
    * @dev creates a proposal with multiple payloads
    * @param vm Vm
    * @param payloads payloads array
@@ -685,6 +736,8 @@ library GovV3Helpers {
       return GovernanceV3Scroll.PAYLOADS_CONTROLLER;
     } else if (chainId == ChainIds.ZK_EVM) {
       return GovernanceV3PolygonZkEvm.PAYLOADS_CONTROLLER;
+    } else if (chainId == ChainIds.ZKSYNC) {
+      return GovernanceV3ZkSync.PAYLOADS_CONTROLLER;
     }
 
     revert CannotFindPayloadsController();
