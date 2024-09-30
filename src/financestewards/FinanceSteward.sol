@@ -52,7 +52,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   mapping(address => address) public priceOracle;
   mapping(address => uint256) public tokenBudget;
   mapping(address => uint256) public minTokenBalance;
-  uint256 MAX_SLIPPAGE = 1000; // 10%
+  uint256 public MAX_SLIPPAGE = 1000; // 10%
   uint256 public SLIPPAGE;
 
   constructor(address _owner, address _guardian) {
@@ -83,7 +83,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
         revert MinimumBalanceShield();
       }
     }
-    
+
     CU.IOInput memory withdrawData = CU.IOInput(address(POOLV2), address(reserve), amount);
 
     uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData);
@@ -256,8 +256,15 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   /// @inheritdoc IFinanceSteward
   function setSwappableToken(address token, address priceFeedUSD) external onlyOwner {
+    if (priceFeedUSD == address(0)) revert MissingPriceFeed();
+
     swapApprovedToken[token] = true;
     priceOracle[token] = priceFeedUSD;
+
+    // Validate oracle has necessary functions
+    AggregatorInterface(priceFeedUSD).decimals();
+    AggregatorInterface(priceFeedUSD).latestAnswer();
+
     emit SwapApprovedToken(token, priceFeedUSD);
   }
 
@@ -281,7 +288,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     }
 
     uint256 currentBalance = IERC20(token).balanceOf(address(COLLECTOR));
-    if (currentBalance < amount){
+    if (currentBalance < amount) {
       revert ExceedsBalance();
     }
     if (minTokenBalance[token] > 0) {
@@ -299,11 +306,9 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   function _validateSwap(address sellToken, uint256 amountIn, address buyToken) internal view {
     if (amountIn == 0) revert InvalidZeroAmount();
+
     if (!swapApprovedToken[sellToken] || !swapApprovedToken[buyToken]) {
       revert UnrecognizedToken();
-    }
-    if (priceOracle[sellToken] == address(0) && priceOracle[buyToken] == address(0)) {
-      revert MissingPriceFeed();
     }
 
     if (
