@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
 import {OwnableWithGuardian} from 'solidity-utils/contracts/access-control/OwnableWithGuardian.sol';
-import {ICollector, CollectorUtils as CU} from './CollectorUtils.sol';
+import {ICollector, CollectorUtils as CU} from '../CollectorUtils.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
@@ -86,7 +86,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
     CU.IOInput memory withdrawData = CU.IOInput(address(POOLV2), address(reserve), amount);
 
-    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData);
+    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData, address(this));
 
     CU.IOInput memory depositData = CU.IOInput(address(POOLV3), address(reserve), withdrawAmount);
     CU.depositToV3(COLLECTOR, depositData);
@@ -112,7 +112,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
     CU.IOInput memory withdrawData = CU.IOInput(address(POOLV2), address(reserve), amount);
 
-    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData);
+    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData, address(this));
 
     CU.SwapInput memory swapData = CU.SwapInput(
       MILKMAN,
@@ -147,7 +147,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
     CU.IOInput memory withdrawData = CU.IOInput(address(POOLV3), address(reserve), amount);
 
-    uint256 withdrawAmount = CU.withdrawFromV3(COLLECTOR, withdrawData);
+    uint256 withdrawAmount = CU.withdrawFromV3(COLLECTOR, withdrawData, address(this));
 
     CU.SwapInput memory swapData = CU.SwapInput(
       MILKMAN,

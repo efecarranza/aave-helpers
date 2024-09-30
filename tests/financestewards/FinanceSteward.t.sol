@@ -12,7 +12,8 @@ import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 
 import {FinanceSteward, IFinanceSteward} from 'src/financestewards/FinanceSteward.sol';
 import {AggregatorInterface} from 'src/financestewards/AggregatorInterface.sol';
-import {CollectorUtils} from 'src/financestewards/CollectorUtils.sol';
+import {CollectorUtils} from 'src/CollectorUtils.sol';
+
 
 /**
  * Helper contract to mock price feed calls
@@ -38,7 +39,7 @@ contract InvalidMockOracle {
 
 /**
  * @dev Test for Finance Steward contract
- * command: make test contract-filter=FinanceSteward
+ * command: make test-financesteward
  */
 contract FinanceSteward_Test is Test {
   event SwapRequested(
@@ -67,7 +68,7 @@ contract FinanceSteward_Test is Test {
   ICollector collector = AaveV3Ethereum.COLLECTOR;
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('mainnet'), 20520413);
+    vm.createSelectFork(vm.rpcUrl('mainnet'));
     steward = new FinanceSteward(GovernanceV3Ethereum.EXECUTOR_LVL_1, guardian);
     vm.prank(0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A);
     collector.setFundsAdmin(address(steward));
@@ -752,6 +753,8 @@ contract Function_createStream is FinanceSteward_Test {
     steward.setWhitelistedReceiver(alice);
     steward.increaseBudget(AaveV3EthereumAssets.USDC_UNDERLYING, 1_000e6);
 
+    uint256 streamId = AaveV3Ethereum.COLLECTOR.getNextStreamId();
+
     vm.startPrank(guardian);
     steward.createStream(alice, data);
     vm.stopPrank();
@@ -759,7 +762,7 @@ contract Function_createStream is FinanceSteward_Test {
     vm.warp(block.timestamp + 5 days);
 
     vm.startPrank(alice);
-    AaveV3Ethereum.COLLECTOR.withdrawFromStream(100042, 1);
+    AaveV3Ethereum.COLLECTOR.withdrawFromStream(streamId, 1);
     vm.stopPrank();
   }
 }
