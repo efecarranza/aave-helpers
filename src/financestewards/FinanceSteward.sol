@@ -42,7 +42,6 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   error UnrecognizedV3Pool();
 
   ILendingPool public immutable POOLV2 = AaveV2Ethereum.POOL;
-  IPool public immutable POOLV3 = AaveV3Ethereum.POOL;
   ICollector public immutable COLLECTOR = AaveV3Ethereum.COLLECTOR;
   AaveSwapper public SWAPPER;
 
@@ -63,6 +62,9 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     setMilkman(0x060373D064d0168931dE2AB8DDA7410923d06E88);
     setPriceChecker(0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c);
     setSwapper(MiscEthereum.AAVE_SWAPPER);
+    setV3Pool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2); //Main
+    setV3Pool(0x0AA97c284e98396202b6A04024F5E2c65026F3c0); //EtherFi
+    setV3Pool(0x4e033931ad43597d96D6bcc25c280717730B58B1); //Lido
   }
 
   /// Steward Actions
