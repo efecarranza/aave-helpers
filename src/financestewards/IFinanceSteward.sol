@@ -26,6 +26,10 @@ interface IFinanceSteward {
   /// @param oracleUSD The address of the oracle providing the USD price feed for the token
   event SwapApprovedToken(address indexed token, address indexed oracleUSD);
 
+  /// @notice Emitted when a new V3 Pool gets listed
+  /// @param V3Pool The address of the new pool
+  event AddedV3Pool(address indexed V3Pool);
+
   /// @notice Emitted when an address is whitelisted as a receiver for transfers
   /// @param receiver The address that has been whitelisted
   event ReceiverWhitelisted(address indexed receiver);
@@ -36,32 +40,65 @@ interface IFinanceSteward {
   event MinimumTokenBalanceUpdated(address indexed token, uint newAmount);
 
   /// @notice Deposits a specified amount of a reserve token into Aave V3
+  /// @param reserve The address of the V3 Pool to deposit
   /// @param reserve The address of the reserve token
   /// @param amount The amount of the reserve token to deposit
-  function depositV3(address reserve, uint amount) external;
+  function depositV3(address V3Pool, address reserve, uint amount) external;
 
   /// @notice Migrates a specified amount of a reserve token from Aave V2 to Aave V3
   /// @param reserve The address of the reserve token
   /// @param amount The amount of the reserve token to migrate
-  function migrateV2toV3(address reserve, uint amount) external;
+  /// @param V3Pool The address of the destination V3 Pool
+  function migrateV2toV3(address reserve, uint amount, address V3Pool) external;
+
+  /// @notice Withdraws a specified amount of a reserve token from Aave V2
+  /// @param reserve The address of the reserve token to withdraw
+  /// @param amount The amount of the reserve token to withdraw
+  function withdrawV2(address reserve, uint amount) external;
+
+  /// @notice Withdraws a specified amount of a reserve token from Aave V3
+  /// @param V3Pool The address of the V3 pool to withdraw from
+  /// @param reserve The address of the reserve token to withdraw
+  /// @param amount The amount of the reserve token to withdraw
+  function withdrawV3(address V3Pool, address reserve, uint amount) external;
 
   /// @notice Withdraws a specified amount of a reserve token from Aave V2 and swaps it for another token
   /// @param reserve The address of the reserve token to withdraw
   /// @param amount The amount of the reserve token to withdraw
   /// @param buyToken The address of the token to buy with the withdrawn reserve token
-  function withdrawV2andSwap(address reserve, uint amount, address buyToken) external;
+  /// @param slippage The slippage allowed in the swap
+  function withdrawV2andSwap(
+    address reserve,
+    uint amount,
+    address buyToken,
+    uint256 slippage
+  ) external;
 
   /// @notice Withdraws a specified amount of a reserve token from Aave V3 and swaps it for another token
+  /// @param V3Pool The address of the V3 Pool to withdraw from
   /// @param reserve The address of the reserve token to withdraw
   /// @param amount The amount of the reserve token to withdraw
   /// @param buyToken The address of the token to buy with the withdrawn reserve token
-  function withdrawV3andSwap(address reserve, uint amount, address buyToken) external;
+  /// @param slippage The slippage allowed in the swap
+  function withdrawV3andSwap(
+    address V3Pool,
+    address reserve,
+    uint amount,
+    address buyToken,
+    uint256 slippage
+  ) external;
 
   /// @notice Swaps a specified amount of a sell token for a buy token
   /// @param sellToken The address of the token to sell
   /// @param amount The amount of the sell token to swap
   /// @param buyToken The address of the token to buy
-  function tokenSwap(address sellToken, uint256 amount, address buyToken) external;
+  /// @param slippage The slippage allowed in the swap
+  function tokenSwap(
+    address sellToken,
+    uint256 amount,
+    address buyToken,
+    uint256 slippage
+  ) external;
 
   /// @notice Approves a specified amount of a token for transfer to a recipient
   /// @param token The address of the token to approve
@@ -93,6 +130,18 @@ interface IFinanceSteward {
   /// @param token The address of the token
   /// @param amount The amount to decrease the budget by
   function decreaseBudget(address token, uint256 amount) external;
+
+  /// @notice Sets the address for the MILKMAN used in swaps
+  /// @param to The address of MILKMAN
+  function setMilkman(address to) external;
+
+  /// @notice Sets the address for the Price checker used in swaps
+  /// @param to The address of PRICE_CHECKER
+  function setPriceChecker(address to) external;
+
+  /// @notice Sets the address for the swapper contract
+  /// @param to The address of SWAPPER
+  function setSwapper(address to) external;
 
   /// @notice Sets a token as swappable and provides its price feed address
   /// @param token The address of the token to set as swappable
