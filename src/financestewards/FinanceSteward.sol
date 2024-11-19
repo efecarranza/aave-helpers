@@ -10,7 +10,8 @@ import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethe
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 import {IPool, DataTypes as DataTypesV3} from 'aave-address-book/AaveV3.sol';
 import {ILendingPool, DataTypes as DataTypesV2} from 'aave-address-book/AaveV2.sol';
-import {AaveSwapper} from '../swaps/AaveSwapper.sol';
+
+import {AaveSwapper} from 'src/swaps/AaveSwapper.sol';
 import {AggregatorInterface} from './AggregatorInterface.sol';
 import {IFinanceSteward} from './IFinanceSteward.sol';
 
@@ -29,42 +30,50 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   using CU for CU.CreateStreamInput;
   using CU for CU.SwapInput;
 
-  error InvalidZeroAmount();
-  error UnrecognizedReceiver();
-  error ExceedsBalance();
-  error ExceedsBudget();
-  error UnrecognizedToken();
-  error MissingPriceFeed();
-  error PriceFeedFailure();
-  error InvalidDate();
-  error MinimumBalanceShield();
-  error InvalidSlippage();
-  error UnrecognizedV3Pool();
+  /// @inheritdoc IFinanceSteward
+  uint256 public constant MAX_SLIPPAGE = 1000; // 10%
 
+  /// @inheritdoc IFinanceSteward
   ILendingPool public immutable POOLV2 = AaveV2Ethereum.POOL;
+
+  /// @inheritdoc IFinanceSteward
   ICollector public immutable COLLECTOR = AaveV3Ethereum.COLLECTOR;
-  AaveSwapper public SWAPPER;
 
+  /// @inheritdoc IFinanceSteward
+  AaveSwapper public immutable SWAPPER = AaveSwapper(MiscEthereum.AAVE_SWAPPER);
+
+  /// @inheritdoc IFinanceSteward
   address public MILKMAN;
-  address public PRICE_CHECKER;
-  mapping(address => bool) public V3Pool;
 
-  mapping(address => bool) public transferApprovedReceiver;
-  mapping(address => bool) public swapApprovedToken;
-  mapping(address => address) public priceOracle;
-  mapping(address => uint256) public tokenBudget;
-  mapping(address => uint256) public minTokenBalance;
-  uint256 public MAX_SLIPPAGE = 1000; // 10%
+  /// @inheritdoc IFinanceSteward
+  address public PRICE_CHECKER;
+
+  /// @inheritdoc IFinanceSteward
+  mapping(address pool => bool isApproved) public v3Pools;
+
+  /// @inheritdoc IFinanceSteward
+  mapping(address receiver => bool isApproved) public transferApprovedReceiver;
+
+  /// @inheritdoc IFinanceSteward
+  mapping(address token => bool isApproved) public swapApprovedToken;
+
+  /// @inheritdoc IFinanceSteward
+  mapping(address token => address oracle) public priceOracle;
+
+  /// @inheritdoc IFinanceSteward
+  mapping(address token => uint256 budget) public tokenBudget;
+
+  /// @inheritdoc IFinanceSteward
+  mapping(address token => uint256 minimumBalanceLeft) public minTokenBalance;
 
   constructor(address _owner, address _guardian) {
     _transferOwnership(_owner);
     _updateGuardian(_guardian);
-    setMilkman(0x060373D064d0168931dE2AB8DDA7410923d06E88);
-    setPriceChecker(0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c);
-    setSwapper(MiscEthereum.AAVE_SWAPPER);
-    setV3Pool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2); //Main
-    setV3Pool(0x0AA97c284e98396202b6A04024F5E2c65026F3c0); //EtherFi
-    setV3Pool(0x4e033931ad43597d96D6bcc25c280717730B58B1); //Lido
+    _setMilkman(0x11C76AD590ABDFFCD980afEC9ad951B160F02797);
+    _setPriceChecker(0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c);
+    _setV3Pool(address(AaveV3Ethereum.POOL)); // Main
+    _setV3Pool(0x0AA97c284e98396202b6A04024F5E2c65026F3c0); // EtherFi
+    _setV3Pool(0x4e033931ad43597d96D6bcc25c280717730B58B1); // Lido
   }
 
   /// Steward Actions
@@ -78,9 +87,9 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
 
   /// @inheritdoc IFinanceSteward
   function migrateV2toV3(
+    address pool,
     address reserve,
-    uint256 amount,
-    address pool
+    uint256 amount
   ) external onlyOwnerOrGuardian {
     if (amount == 0) {
       revert InvalidZeroAmount();
@@ -93,7 +102,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     if (minTokenBalance[atoken] > 0) {
       uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[atoken]) {
-        revert MinimumBalanceShield();
+        revert MinimumBalanceShield(minTokenBalance[atoken]);
       }
     }
 
@@ -113,7 +122,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     if (minTokenBalance[atoken] > 0) {
       uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[atoken]) {
-        revert MinimumBalanceShield();
+        revert MinimumBalanceShield(minTokenBalance[atoken]);
       }
     }
 
@@ -135,7 +144,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     if (minTokenBalance[atoken] > 0) {
       uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[atoken]) {
-        revert MinimumBalanceShield();
+        revert MinimumBalanceShield(minTokenBalance[atoken]);
       }
     }
 
@@ -157,7 +166,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     if (minTokenBalance[atoken] > 0) {
       uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[atoken]) {
-        revert MinimumBalanceShield();
+        revert MinimumBalanceShield(minTokenBalance[atoken]);
       }
     }
 
@@ -195,7 +204,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     if (minTokenBalance[atoken] > 0) {
       uint256 currentBalance = IERC20(atoken).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[atoken]) {
-        revert MinimumBalanceShield();
+        revert MinimumBalanceShield(minTokenBalance[atoken]);
       }
     }
 
@@ -229,7 +238,7 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     if (minTokenBalance[sellToken] > 0) {
       uint256 currentBalance = IERC20(sellToken).balanceOf(address(COLLECTOR));
       if (currentBalance - amount < minTokenBalance[sellToken]) {
-        revert MinimumBalanceShield();
+        revert MinimumBalanceShield(minTokenBalance[sellToken]);
       }
     }
 
@@ -334,28 +343,43 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
   }
 
   /// @inheritdoc IFinanceSteward
-  function setV3Pool(address newV3pool) public onlyOwner {
-    V3Pool[newV3pool] = true;
-    emit AddedV3Pool(newV3pool);
+  function setV3Pool(address newV3pool) external onlyOwner {
+    _setV3Pool(newV3pool);
   }
 
   /// @inheritdoc IFinanceSteward
-  function setPriceChecker(address newPriceChecker) public onlyOwner {
-    PRICE_CHECKER = newPriceChecker;
+  function setPriceChecker(address newPriceChecker) external onlyOwner {
+    _setPriceChecker(newPriceChecker);
   }
 
   /// @inheritdoc IFinanceSteward
-  function setMilkman(address newMilkman) public onlyOwner {
-    MILKMAN = newMilkman;
-  }
-
-  /// @inheritdoc IFinanceSteward
-  function setSwapper(address newSwapper) public onlyOwner {
-    SWAPPER = AaveSwapper(newSwapper);
+  function setMilkman(address newMilkman) external onlyOwner {
+    _setMilkman(newMilkman);
   }
 
   /// Logic
 
+  /// @dev Internal function to approve an Aave V3 Pool instance
+  function _setV3Pool(address newV3pool) internal {
+    v3Pools[newV3pool] = true;
+
+    emit AddedV3Pool(newV3pool);
+  }
+
+  /// @dev Internal function to set the price checker
+  function _setPriceChecker(address newPriceChecker) internal {
+    PRICE_CHECKER = newPriceChecker;
+  }
+
+  /// @dev Internal function to set the Milkman instance address
+  function _setMilkman(address newMilkman) internal {
+    address old = MILKMAN;
+    MILKMAN = newMilkman;
+
+    emit MilkmanAddressUpdated(old, newMilkman);
+  }
+
+  /// @dev Internal function to validate a transfer's parameters
   function _validateTransfer(address token, address to, uint256 amount) internal {
     if (transferApprovedReceiver[to] == false) {
       revert UnrecognizedReceiver();
@@ -367,17 +391,18 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     }
     if (minTokenBalance[token] > 0) {
       if (currentBalance - amount < minTokenBalance[token]) {
-        revert MinimumBalanceShield();
+        revert MinimumBalanceShield(minTokenBalance[token]);
       }
     }
 
     uint256 currentBudget = tokenBudget[token];
     if (currentBudget < amount) {
-      revert ExceedsBudget();
+      revert ExceedsBudget(currentBudget);
     }
     _updateBudget(token, currentBudget - amount);
   }
 
+  /// @dev Internal function to validate a swap's parameters
   function _validateSwap(
     address sellToken,
     uint256 amountIn,
@@ -400,10 +425,12 @@ contract FinanceSteward is OwnableWithGuardian, IFinanceSteward {
     }
   }
 
+  /// @dev Internal function to validate if an Aave V3 Pool instance has been approved
   function _validateV3Pool(address pool) internal view {
-    if (V3Pool[pool] == false) revert UnrecognizedV3Pool();
+    if (v3Pools[pool] == false) revert UnrecognizedV3Pool();
   }
 
+  /// @dev Internal function to update a token's budget
   function _updateBudget(address token, uint256 newAmount) internal {
     tokenBudget[token] = newAmount;
     emit BudgetUpdate(token, newAmount);
