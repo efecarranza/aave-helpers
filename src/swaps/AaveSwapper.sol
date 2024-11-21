@@ -57,7 +57,7 @@ contract AaveSwapper is IAaveSwapper, Initializable, OwnableWithGuardian, Rescua
       IERC20(fromToken),
       IERC20(toToken),
       recipient,
-      '',
+      bytes32(0),
       priceChecker,
       data
     );
@@ -93,7 +93,7 @@ contract AaveSwapper is IAaveSwapper, Initializable, OwnableWithGuardian, Rescua
       IERC20(fromToken),
       IERC20(toToken),
       recipient,
-      '',
+      bytes32(0),
       priceChecker,
       data
     );
