@@ -7,14 +7,14 @@ import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethe
 import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {Ownable} from 'solidity-utils/contracts/oz-common/Ownable.sol';
-import {ICollector} from 'aave-address-book/common/ICollector.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
-import {Collector} from 'aave-v3-origin/contracts/treasury/Collector.sol';
-
 import {FinanceSteward, IFinanceSteward} from 'src/financestewards/FinanceSteward.sol';
 import {AggregatorInterface} from 'src/financestewards/AggregatorInterface.sol';
 import {CollectorUtils} from 'src/CollectorUtils.sol';
 import {TransparentUpgradeableProxy} from 'solidity-utils/contracts/transparent-proxy/TransparentUpgradeableProxy.sol';
+import {ICollector} from 'aave-v3-origin/periphery/contracts/treasury/ICollector.sol';
+import {Collector} from 'aave-v3-origin/periphery/contracts/treasury/Collector.sol';
+import {IAccessControl} from 'aave-v3-origin/core/contracts/dependencies/openzeppelin/contracts/IAccessControl.sol';
 
 
 /**
@@ -58,6 +58,7 @@ contract FinanceSteward_Test is Test {
   event SwapApprovedToken(address indexed token, address indexed oracleUSD);
   event ReceiverWhitelisted(address indexed receiver);
   event MinimumTokenBalanceUpdated(address indexed token, uint newAmount);
+  event Upgraded(address indexed impl);
 
   address public constant guardian = address(42);
   FinanceSteward public steward;
@@ -68,20 +69,20 @@ contract FinanceSteward_Test is Test {
   address public constant AAVE_PRICE_FEED = 0x547a514d5e3769680Ce22B2361c10Ea13619e8a9;
   address public constant EXECUTOR = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
   address public constant COLLECTOR_PROXY = 0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c;
+  address public constant ACL_MANAGER = 0xc2aaCf6553D20d1e9d78E365AAba8032af9c85b0;
 
-  ICollector collector = AaveV3Ethereum.COLLECTOR;
+  ICollector collector = ICollector(COLLECTOR_PROXY);
 
   function setUp() public {
     vm.createSelectFork(vm.rpcUrl('mainnet'));
     steward = new FinanceSteward(GovernanceV3Ethereum.EXECUTOR_LVL_1, guardian);
 
-    address new_collector_impl = new Collector();
+    Collector new_collector_impl = new Collector();
 
     vm.prank(EXECUTOR);
 
-    vm.expectEmit(true, true);
-    emit Upgraded(new_collector_impl);
-    TransparentUpgradeableProxy(address(collector)).upgradeTo(new_collector_impl);
+    vm.expectEmit(address(new_collector_impl));
+    TransparentUpgradeableProxy(payable(address(collector))).upgradeTo(address(new_collector_impl));
     
     IAccessControl(ACL_MANAGER).grantRole(collector.FUNDS_ADMIN_ROLE(), steward);
     IAccessControl(ACL_MANAGER).grantRole(collector.FUNDS_ADMIN_ROLE(), EXECUTOR);
