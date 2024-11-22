@@ -9,10 +9,12 @@ import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {Ownable} from 'solidity-utils/contracts/oz-common/Ownable.sol';
 import {ICollector} from 'aave-address-book/common/ICollector.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
+import {Collector} from 'aave-v3-origin/contracts/treasury/Collector.sol';
 
 import {FinanceSteward, IFinanceSteward} from 'src/financestewards/FinanceSteward.sol';
 import {AggregatorInterface} from 'src/financestewards/AggregatorInterface.sol';
 import {CollectorUtils} from 'src/CollectorUtils.sol';
+import {TransparentUpgradeableProxy} from 'solidity-utils/contracts/transparent-proxy/TransparentUpgradeableProxy.sol';
 
 
 /**
@@ -64,22 +66,35 @@ contract FinanceSteward_Test is Test {
 
   address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
   address public constant AAVE_PRICE_FEED = 0x547a514d5e3769680Ce22B2361c10Ea13619e8a9;
+  address public constant EXECUTOR = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
+  address public constant COLLECTOR_PROXY = 0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c;
 
   ICollector collector = AaveV3Ethereum.COLLECTOR;
 
   function setUp() public {
     vm.createSelectFork(vm.rpcUrl('mainnet'));
     steward = new FinanceSteward(GovernanceV3Ethereum.EXECUTOR_LVL_1, guardian);
-    vm.prank(0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A);
-    collector.setFundsAdmin(address(steward));
 
-    vm.prank(0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa);
+    address new_collector_impl = new Collector();
+
+    vm.prank(EXECUTOR);
+
+    vm.expectEmit(true, true);
+    emit Upgraded(new_collector_impl);
+    TransparentUpgradeableProxy(address(collector)).upgradeTo(new_collector_impl);
+    
+    IAccessControl(ACL_MANAGER).grantRole(collector.FUNDS_ADMIN_ROLE(), steward);
+    IAccessControl(ACL_MANAGER).grantRole(collector.FUNDS_ADMIN_ROLE(), EXECUTOR);
+
+    vm.stopPrank();
+
+     vm.prank(0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa); //RANDOM USDC HOLDER
     IERC20(AaveV3EthereumAssets.USDC_UNDERLYING).transfer(
       address(AaveV3Ethereum.COLLECTOR),
       1_000_000e6
     );
 
-    vm.prank(0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A);
+    vm.prank(EXECUTOR);
     Ownable(MiscEthereum.AAVE_SWAPPER).transferOwnership(address(steward));
   }
 }
