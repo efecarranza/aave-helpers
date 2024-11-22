@@ -11,9 +11,10 @@ import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 import {FinanceSteward, IFinanceSteward} from 'src/financestewards/FinanceSteward.sol';
 import {AggregatorInterface} from 'src/financestewards/AggregatorInterface.sol';
 import {CollectorUtils} from 'src/CollectorUtils.sol';
+import {ProxyAdmin} from 'solidity-utils/contracts/transparent-proxy/ProxyAdmin.sol';
 import {TransparentUpgradeableProxy} from 'solidity-utils/contracts/transparent-proxy/TransparentUpgradeableProxy.sol';
-import {ICollector} from 'aave-v3-origin/periphery/contracts/treasury/ICollector.sol';
-import {Collector} from 'aave-v3-origin/periphery/contracts/treasury/Collector.sol';
+import {ICollector} from 'new-v3-origin/src/contracts/treasury/ICollector.sol';
+import {Collector} from 'new-v3-origin/src/contracts/treasury/Collector.sol';
 import {IAccessControl} from 'aave-v3-origin/core/contracts/dependencies/openzeppelin/contracts/IAccessControl.sol';
 
 
@@ -60,7 +61,7 @@ contract FinanceSteward_Test is Test {
   event MinimumTokenBalanceUpdated(address indexed token, uint newAmount);
   event Upgraded(address indexed impl);
 
-  address public constant guardian = address(42);
+  address public constant guardian = address(82);
   FinanceSteward public steward;
 
   address public alice = address(43);
@@ -68,24 +69,34 @@ contract FinanceSteward_Test is Test {
   address public constant USDC_PRICE_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
   address public constant AAVE_PRICE_FEED = 0x547a514d5e3769680Ce22B2361c10Ea13619e8a9;
   address public constant EXECUTOR = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
-  address public constant COLLECTOR_PROXY = 0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c;
+  address public constant PROXY_ADMIN = 0xD3cF979e676265e4f6379749DECe4708B9A22476;
   address public constant ACL_MANAGER = 0xc2aaCf6553D20d1e9d78E365AAba8032af9c85b0;
+  TransparentUpgradeableProxy public constant COLLECTOR_PROXY = TransparentUpgradeableProxy(payable(0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c));
+  bytes32 public constant FUNDS_ADMIN_ROLE = keccak256('FUNDS_ADMIN');
 
-  ICollector collector = ICollector(COLLECTOR_PROXY);
+  ICollector collector = ICollector(address(COLLECTOR_PROXY));
+
 
   function setUp() public {
-    vm.createSelectFork(vm.rpcUrl('mainnet'));
+    vm.createSelectFork(vm.rpcUrl('mainnet'),21244865);
     steward = new FinanceSteward(GovernanceV3Ethereum.EXECUTOR_LVL_1, guardian);
 
     Collector new_collector_impl = new Collector();
 
-    vm.prank(EXECUTOR);
+    vm.label(0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c, "Collector");
+    vm.label(alice, "alice");
+    vm.label(guardian, "guardian");
+    vm.label(EXECUTOR, "EXECUTOR");
+    vm.label(address(steward), "FinanceSteward");
 
-    vm.expectEmit(address(new_collector_impl));
-    TransparentUpgradeableProxy(payable(address(collector))).upgradeTo(address(new_collector_impl));
-    
-    IAccessControl(ACL_MANAGER).grantRole(collector.FUNDS_ADMIN_ROLE(), steward);
-    IAccessControl(ACL_MANAGER).grantRole(collector.FUNDS_ADMIN_ROLE(), EXECUTOR);
+    vm.startPrank(EXECUTOR);
+
+    ProxyAdmin(PROXY_ADMIN).upgrade(COLLECTOR_PROXY, address(new_collector_impl));
+
+    IAccessControl(ACL_MANAGER).grantRole(FUNDS_ADMIN_ROLE, address(steward));
+    IAccessControl(ACL_MANAGER).grantRole(FUNDS_ADMIN_ROLE, EXECUTOR);
+
+    collector.initialize(ACL_MANAGER, 100051);
 
     vm.stopPrank();
 
@@ -809,9 +820,9 @@ contract Function_createStream is FinanceSteward_Test {
 }
 
 contract Function_cancelStream is FinanceSteward_Test {
-  uint256 public constant STREAM_ID = 100_040;
-
+uint256 constant STREAM_ID = uint256(100050);
   function test_revertsIf_notOwnerOrQuardian() public {
+
     vm.startPrank(alice);
 
     vm.expectRevert('ONLY_BY_OWNER_OR_GUARDIAN');
@@ -820,8 +831,17 @@ contract Function_cancelStream is FinanceSteward_Test {
   }
 
   function test_success() public {
+  (
+      address sender,
+      address recipient,
+      uint256 deposit,
+      address tokenAddress,
+      uint256 startTime,
+      uint256 stopTime,
+      uint256 remainingBalance,
+      uint256 ratePerSecond
+    ) = collector.getStream(STREAM_ID);
     vm.startPrank(guardian);
-
     steward.cancelStream(STREAM_ID);
     vm.stopPrank();
   }
