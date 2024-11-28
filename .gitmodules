@@ -7,3 +7,6 @@
 [submodule "lib/aave-address-book"]
 	path = lib/aave-address-book
 	url = https://github.com/bgd-labs/aave-address-book
+[submodule "lib/new-v3-origin"]
+	path = lib/new-v3-origin
+	url = https://github.com/kpk-tl/aave-v3-origin
