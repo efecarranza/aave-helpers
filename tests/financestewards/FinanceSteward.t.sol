@@ -13,8 +13,8 @@ import {AggregatorInterface} from 'src/financestewards/AggregatorInterface.sol';
 import {CollectorUtils} from 'src/CollectorUtils.sol';
 import {ProxyAdmin} from 'solidity-utils/contracts/transparent-proxy/ProxyAdmin.sol';
 import {TransparentUpgradeableProxy} from 'solidity-utils/contracts/transparent-proxy/TransparentUpgradeableProxy.sol';
-import {ICollector} from 'new-v3-origin/src/contracts/treasury/ICollector.sol';
-import {Collector} from 'new-v3-origin/src/contracts/treasury/Collector.sol';
+import {ICollector} from 'collector-upgrade-rev6/lib/aave-v3-origin/src/contracts/treasury/ICollector.sol';
+import {Collector} from 'collector-upgrade-rev6/lib/aave-v3-origin/src/contracts/treasury/Collector.sol';
 import {IAccessControl} from 'aave-v3-origin/core/contracts/dependencies/openzeppelin/contracts/IAccessControl.sol';
 
 
@@ -72,7 +72,7 @@ contract FinanceSteward_Test is Test {
   address public constant PROXY_ADMIN = 0xD3cF979e676265e4f6379749DECe4708B9A22476;
   address public constant ACL_MANAGER = 0xc2aaCf6553D20d1e9d78E365AAba8032af9c85b0;
   TransparentUpgradeableProxy public constant COLLECTOR_PROXY = TransparentUpgradeableProxy(payable(0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c));
-  bytes32 public constant FUNDS_ADMIN_ROLE = keccak256('FUNDS_ADMIN');
+  bytes32 public constant FUNDS_ADMIN_ROLE = 'FUNDS_ADMIN';
 
   ICollector collector = ICollector(address(COLLECTOR_PROXY));
 
@@ -81,7 +81,7 @@ contract FinanceSteward_Test is Test {
     vm.createSelectFork(vm.rpcUrl('mainnet'),21244865);
     steward = new FinanceSteward(GovernanceV3Ethereum.EXECUTOR_LVL_1, guardian);
 
-    Collector new_collector_impl = new Collector();
+    Collector new_collector_impl = new Collector(ACL_MANAGER);
 
     vm.label(0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c, "Collector");
     vm.label(alice, "alice");
@@ -91,12 +91,14 @@ contract FinanceSteward_Test is Test {
 
     vm.startPrank(EXECUTOR);
 
+    uint256 streamID = collector.getNextStreamId();
+
     ProxyAdmin(PROXY_ADMIN).upgrade(COLLECTOR_PROXY, address(new_collector_impl));
 
     IAccessControl(ACL_MANAGER).grantRole(FUNDS_ADMIN_ROLE, address(steward));
     IAccessControl(ACL_MANAGER).grantRole(FUNDS_ADMIN_ROLE, EXECUTOR);
 
-    collector.initialize(ACL_MANAGER, 100051);
+    collector.initialize(streamID);
 
     vm.stopPrank();
 
