@@ -10,3 +10,6 @@
 [submodule "lib/new-v3-origin"]
 	path = lib/new-v3-origin
 	url = https://github.com/kpk-tl/aave-v3-origin
+[submodule "lib/collector-upgrade-rev6"]
+	path = lib/collector-upgrade-rev6
+	url = https://github.com/bgd-labs/collector-upgrade-rev6
