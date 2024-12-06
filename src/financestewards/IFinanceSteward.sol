@@ -58,6 +58,8 @@ interface IFinanceSteward {
   /// @dev Aave V3 Pool must have been previously approved
   error UnrecognizedV3Pool();
 
+  error V2PoolNotFound();
+
   /// @notice Emitted when the budget for a token is updated
   /// @param token The address of the token
   /// @param newAmount The new budget amount
