@@ -7,10 +7,8 @@ import {OwnableWithGuardian} from 'solidity-utils/contracts/access-control/Ownab
 import {ICollector, CollectorUtils as CU} from '../CollectorUtils.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {AaveV2Ethereum, AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
-import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 import {IPool, DataTypes as DataTypesV3} from 'aave-address-book/AaveV3.sol';
 import {ILendingPool, DataTypes as DataTypesV2} from 'aave-address-book/AaveV2.sol';
-
 import {IPoolV3FinSteward} from './IPoolV3FinSteward.sol';
 
 /**
@@ -76,7 +74,7 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
     uint256 amount
   ) external onlyOwnerOrGuardian {
     if (amount == 0) revert InvalidZeroAmount();
-    if (address(v2Pool) == address(0)) return V2PoolNotFound();
+    if (address(v2Pool) == address(0)) revert V2PoolNotFound();
 
     _validateV3Pool(pool);
 
@@ -95,7 +93,7 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
 
   /// @inheritdoc IPoolV3FinSteward
   function withdrawV2(address reserve, uint256 amount) external onlyOwnerOrGuardian {
-    if (address(v2Pool) == address(0)) return V2PoolNotFound();
+    if (address(v2Pool) == address(0)) revert V2PoolNotFound();
 
     DataTypesV2.ReserveData memory reserveData = v2Pool.getReserveData(reserve);
 

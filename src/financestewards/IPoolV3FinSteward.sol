@@ -6,7 +6,6 @@ import {IPool} from 'aave-address-book/AaveV3.sol';
 import {ILendingPool} from 'aave-address-book/AaveV2.sol';
 
 interface IPoolV3FinSteward {
-
   /// @dev Amount cannot be zero
   error InvalidZeroAmount();
 
@@ -38,7 +37,7 @@ interface IPoolV3FinSteward {
   /// @notice Returns instance of the Aave V2 Mainnet V2 Lending Pool
   function v2Pool() external view returns (ILendingPool);
 
-  /// @notice Returns whether pool is approved to be used by FinanceSteward
+  /// @notice Returns whether pool is approved to be used by PoolV3FinSteward
   /// @param pool Address of the Aave V3 Pool
   function v3Pools(address pool) external view returns (bool);
 
@@ -69,38 +68,16 @@ interface IPoolV3FinSteward {
   /// @param amount The amount of the reserve token to withdraw
   function withdrawV3(address V3Pool, address reserve, uint amount) external;
 
-  /// @notice Withdraws a specified amount of a reserve token from Aave V2 and swaps it for another token
-  /// @param reserve The address of the reserve token to withdraw
-  /// @param amount The amount of the reserve token to withdraw
-  /// @param buyToken The address of the token to buy with the withdrawn reserve token
-  /// @param slippage The slippage allowed in the swap
-  function withdrawV2andSwap(
-    address reserve,
-    uint amount,
-    address buyToken,
-    uint256 slippage
-  ) external;
-
-  /// @notice Withdraws a specified amount of a reserve token from Aave V3 and swaps it for another token
-  /// @param V3Pool The address of the V3 Pool to withdraw from
-  /// @param reserve The address of the reserve token to withdraw
-  /// @param amount The amount of the reserve token to withdraw
-  /// @param buyToken The address of the token to buy with the withdrawn reserve token
-  /// @param slippage The slippage allowed in the swap
-  function withdrawV3andSwap(
-    address V3Pool,
-    address reserve,
-    uint amount,
-    address buyToken,
-    uint256 slippage
-  ) external;
-
   /// @notice Sets the minimum balance shield for a specified token
   /// @param token The address of the token
   /// @param amount The minimum balance to shield
   function setMinimumBalanceShield(address token, uint amount) external;
 
-  /// @notice Approves an Aave V3 Instance to be used by the FinanceSteward
+  /// @notice Approves an Aave V3 Instance to be used by the PoolV3FinSteward
   /// @param newV3pool Address of the Aave V3 Pool
   function setV3Pool(address newV3pool) external;
+
+  /// @notice Updates the Aave V2 Instance to be used by the PoolV3FinSteward
+  /// @param newV2pool Address of the Aave V2 Pool
+  function setV2Pool(address newV2pool) external;
 }
