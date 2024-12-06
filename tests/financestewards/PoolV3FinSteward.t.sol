@@ -193,7 +193,7 @@ contract Function_migrateV2toV3 is PoolV3FinSteward_Test {
       vm.prank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
       steward.setMinimumBalanceShield(AaveV2EthereumAssets.USDC_A_TOKEN, min_);
     }
-    
+
     amount_ = bound(amount_, 1, 1e36);
     if (amount_ + min_ > balanceV2Before) {
       vm.expectRevert(
@@ -206,7 +206,7 @@ contract Function_migrateV2toV3 is PoolV3FinSteward_Test {
         amount_
       );
     } else {
-       vm.startPrank(guardian);
+      vm.startPrank(guardian);
       steward.migrateV2toV3(
         address(AaveV3Ethereum.POOL),
         AaveV3EthereumAssets.USDC_UNDERLYING,
@@ -218,12 +218,11 @@ contract Function_migrateV2toV3 is PoolV3FinSteward_Test {
         balanceV3Before
       );
 
-    assertApproxEqAbs(
+      assertApproxEqAbs(
         IERC20(AaveV3EthereumAssets.USDC_A_TOKEN).balanceOf(address(AaveV3Ethereum.COLLECTOR)),
         balanceV3Before + amount_,
         2
       );
-
     }
     vm.stopPrank();
   }
@@ -279,6 +278,52 @@ contract Function_withdrawV3 is PoolV3FinSteward_Test {
       IERC20(AaveV3EthereumAssets.USDC_A_TOKEN).balanceOf(address(AaveV3Ethereum.COLLECTOR)),
       balanceV3Before
     );
+    vm.stopPrank();
+  }
+
+  function test_fuzz(uint256 amount_, uint256 min_) public {
+    uint256 balanceV3Before = IERC20(AaveV3EthereumAssets.USDC_A_TOKEN).balanceOf(
+      address(AaveV3Ethereum.COLLECTOR)
+    );
+    uint256 balanceUSDCBefore = IERC20(AaveV3EthereumAssets.USDC_UNDERLYING).balanceOf(
+      address(AaveV3Ethereum.COLLECTOR)
+    );
+    min_ = bound(min_, 1, balanceV3Before);
+    if (min_ > 0) {
+      vm.prank(GovernanceV3Ethereum.EXECUTOR_LVL_1);
+      steward.setMinimumBalanceShield(AaveV3EthereumAssets.USDC_A_TOKEN, min_);
+    }
+
+    amount_ = bound(amount_, 1, 1e36);
+    if (amount_ + min_ > balanceV3Before) {
+      vm.expectRevert(
+        abi.encodeWithSelector(IPoolV3FinSteward.MinimumBalanceShield.selector, min_)
+      );
+      vm.startPrank(guardian);
+      steward.withdrawV3(
+        address(AaveV3Ethereum.POOL),
+        AaveV3EthereumAssets.USDC_UNDERLYING,
+        amount_
+      );
+    } else {
+      vm.startPrank(guardian);
+      steward.withdrawV3(
+        address(AaveV3Ethereum.POOL),
+        AaveV3EthereumAssets.USDC_UNDERLYING,
+        amount_
+      );
+
+      assertLt(
+        IERC20(AaveV3EthereumAssets.USDC_A_TOKEN).balanceOf(address(AaveV3Ethereum.COLLECTOR)),
+        balanceV3Before
+      );
+
+      assertApproxEqAbs(
+        IERC20(AaveV3EthereumAssets.USDC_UNDERLYING).balanceOf(address(AaveV3Ethereum.COLLECTOR)),
+        balanceUSDCBefore + amount_,
+        2
+      );
+    }
     vm.stopPrank();
   }
 }

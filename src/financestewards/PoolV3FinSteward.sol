@@ -66,7 +66,7 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
 
     CU.IOInput memory withdrawData = CU.IOInput(pool, reserve, validAmount);
 
-    uint256 withdrawAmount = CU.withdrawFromV3(COLLECTOR, withdrawData, address(COLLECTOR));
+    CU.withdrawFromV3(COLLECTOR, withdrawData, address(COLLECTOR));
   }
 
   /// @inheritdoc IPoolV3FinSteward
@@ -104,7 +104,7 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
     address atoken = reserveData.aTokenAddress;
     uint256 validAmount = _validateAmount(atoken, amount);
     CU.IOInput memory withdrawData = CU.IOInput(address(v2Pool), reserve, validAmount);
-    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData, address(COLLECTOR));
+    CU.withdrawFromV2(COLLECTOR, withdrawData, address(COLLECTOR));
   }
 
   /// DAO Actions
@@ -140,11 +140,11 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
   }
 
   /// @dev Internal function to validate if an Aave V3 Pool instance has been approved
-  function _validateV3Pool(address pool) internal {
+  function _validateV3Pool(address pool) internal view {
     if (v3Pools[pool] == false) revert UnrecognizedV3Pool();
   }
 
-  function _validateAmount(address token, uint256 amount) internal returns (uint256 validAmount) {
+  function _validateAmount(address token, uint256 amount) internal view returns (uint256 validAmount) {
     uint256 balance = IERC20(token).balanceOf(address(COLLECTOR));
     if (minTokenBalance[token] > 0) {
       uint256 leftover = (amount > balance) ? 0 : balance - amount;
