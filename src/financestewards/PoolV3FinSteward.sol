@@ -49,6 +49,7 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
 
   /// @inheritdoc IPoolV3FinSteward
   function depositV3(address pool, address reserve, uint256 amount) external onlyOwnerOrGuardian {
+    if (amount == 0) revert InvalidZeroAmount();
     _validateV3Pool(pool);
     CU.IOInput memory depositData = CU.IOInput(pool, reserve, amount);
     CU.depositToV3(COLLECTOR, depositData);
@@ -56,15 +57,16 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
 
   /// @inheritdoc IPoolV3FinSteward
   function withdrawV3(address pool, address reserve, uint256 amount) external onlyOwnerOrGuardian {
+    if (amount == 0) revert InvalidZeroAmount();
     _validateV3Pool(pool);
 
     DataTypesV3.ReserveDataLegacy memory reserveData = IPool(pool).getReserveData(reserve);
     address atoken = reserveData.aTokenAddress;
-    _validateAmount(atoken, amount);
+    uint256 validAmount = _validateAmount(atoken, amount);
 
-    CU.IOInput memory withdrawData = CU.IOInput(pool, reserve, amount);
+    CU.IOInput memory withdrawData = CU.IOInput(pool, reserve, validAmount);
 
-    uint256 withdrawAmount = CU.withdrawFromV3(COLLECTOR, withdrawData, address(this));
+    uint256 withdrawAmount = CU.withdrawFromV3(COLLECTOR, withdrawData, address(COLLECTOR));
   }
 
   /// @inheritdoc IPoolV3FinSteward
@@ -79,30 +81,30 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
     _validateV3Pool(pool);
 
     DataTypesV2.ReserveData memory reserveData = v2Pool.getReserveData(reserve);
-
     address atoken = reserveData.aTokenAddress;
-    _validateAmount(atoken, amount);
 
-    CU.IOInput memory withdrawData = CU.IOInput(address(v2Pool), reserve, amount);
+    uint256 balanceBefore = IERC20(reserve).balanceOf(address(COLLECTOR));
+    uint256 validAmount = _validateAmount(atoken, amount);
+    CU.IOInput memory withdrawData = CU.IOInput(address(v2Pool), reserve, validAmount);
+    CU.withdrawFromV2(COLLECTOR, withdrawData, address(COLLECTOR));
 
-    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData, address(this));
+    uint256 balanceAfter = IERC20(reserve).balanceOf(address(COLLECTOR));
 
-    CU.IOInput memory depositData = CU.IOInput(pool, reserve, withdrawAmount);
+    CU.IOInput memory depositData = CU.IOInput(pool, reserve, balanceAfter - balanceBefore);
     CU.depositToV3(COLLECTOR, depositData);
   }
 
   /// @inheritdoc IPoolV3FinSteward
   function withdrawV2(address reserve, uint256 amount) external onlyOwnerOrGuardian {
+    if (amount == 0) revert InvalidZeroAmount();
     if (address(v2Pool) == address(0)) revert V2PoolNotFound();
 
     DataTypesV2.ReserveData memory reserveData = v2Pool.getReserveData(reserve);
 
     address atoken = reserveData.aTokenAddress;
-    _validateAmount(atoken, amount);
-
-    CU.IOInput memory withdrawData = CU.IOInput(address(v2Pool), reserve, amount);
-
-    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData, address(this));
+    uint256 validAmount = _validateAmount(atoken, amount);
+    CU.IOInput memory withdrawData = CU.IOInput(address(v2Pool), reserve, validAmount);
+    uint256 withdrawAmount = CU.withdrawFromV2(COLLECTOR, withdrawData, address(COLLECTOR));
   }
 
   /// DAO Actions
@@ -142,11 +144,13 @@ contract PoolV3FinSteward is OwnableWithGuardian, IPoolV3FinSteward {
     if (v3Pools[pool] == false) revert UnrecognizedV3Pool();
   }
 
-  function _validateAmount(address token, uint256 amount) internal {
-    uint256 currentBalance = IERC20(token).balanceOf(address(COLLECTOR));
+  function _validateAmount(address token, uint256 amount) internal returns (uint256 validAmount) {
+    uint256 balance = IERC20(token).balanceOf(address(COLLECTOR));
+    if (minTokenBalance[token] > 0) {
+      uint256 leftover = (amount > balance) ? 0 : balance - amount;
 
-    uint256 leftover = (amount >= currentBalance) ? 0 : currentBalance - amount;
-
-    if (leftover < minTokenBalance[token]) revert MinimumBalanceShield(minTokenBalance[token]);
+      if (minTokenBalance[token] > leftover) revert MinimumBalanceShield(minTokenBalance[token]);
+    }
+    validAmount = (amount > balance) ? balance : amount;
   }
 }
