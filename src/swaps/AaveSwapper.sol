@@ -5,26 +5,30 @@ pragma solidity ^0.8.0;
 import {IERC20} from 'solidity-utils/contracts/oz-common/interfaces/IERC20.sol';
 import {SafeERC20} from 'solidity-utils/contracts/oz-common/SafeERC20.sol';
 import {Rescuable} from 'solidity-utils/contracts/utils/Rescuable.sol';
+import {RescuableBase, IRescuableBase} from 'solidity-utils/contracts/utils/RescuableBase.sol';
 import {OwnableWithGuardian} from 'solidity-utils/contracts/access-control/OwnableWithGuardian.sol';
 import {Initializable} from 'solidity-utils/contracts/transparent-proxy/Initializable.sol';
 import {AaveV3Ethereum} from 'aave-address-book/AaveV3Ethereum.sol';
 import {GovernanceV3Ethereum} from 'aave-address-book/GovernanceV3Ethereum.sol';
 
+import {IAaveSwapper} from './interfaces/IAaveSwapper.sol';
 import {IPriceChecker} from './interfaces/IExpectedOutCalculator.sol';
 import {IMilkman} from './interfaces/IMilkman.sol';
 import {IAggregatorV3Interface} from './interfaces/IAggregatorV3Interface.sol';
 import {IAaveSwapper} from './IAaveSwapper.sol';
 
-/// @title AaveSwapper
-/// @author Llama
-/// @notice Helper contract to swap assets using milkman
+/**
+ * @title AaveSwapper
+ * @author efecarranza.eth
+ * @notice Helper contract to swap assets using milkman
+ */
 contract AaveSwapper is IAaveSwapper, Initializable, OwnableWithGuardian, Rescuable {
   using SafeERC20 for IERC20;
 
+  /// @inheritdoc IAaveSwapper
   address public constant BAL80WETH20 = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
 
-  /// @notice Initializes the contract.
-  /// Reverts if already initialized
+  /// @inheritdoc IAaveSwapper
   function initialize() external initializer {
     _transferOwnership(GovernanceV3Ethereum.EXECUTOR_LVL_1);
     _updateGuardian(0xA519a7cE7B24333055781133B13532AEabfAC81b);
@@ -166,6 +170,7 @@ contract AaveSwapper is IAaveSwapper, Initializable, OwnableWithGuardian, Rescua
       IERC20(fromToken),
       IERC20(toToken),
       recipient,
+      bytes32(0),
       priceChecker,
       priceCheckerData
     );
@@ -193,6 +198,7 @@ contract AaveSwapper is IAaveSwapper, Initializable, OwnableWithGuardian, Rescua
       IERC20(fromToken),
       IERC20(toToken),
       recipient,
+      bytes32(0),
       priceChecker,
       priceCheckerData
     );

@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import 'forge-std/Test.sol';
 import {IVotingMachineWithProofs, GovV3Helpers, PayloadsControllerUtils, IPayloadsControllerCore, GovV3StorageHelpers, IGovernanceCore} from '../src/GovV3Helpers.sol';
-import {GovHelpers} from '../src/GovHelpers.sol';
 import {ProtocolV3TestBase} from '../src/ProtocolV3TestBase.sol';
 import {MiscEthereum} from 'aave-address-book/MiscEthereum.sol';
 import {AaveV3Ethereum} from 'aave-address-book/AaveV3Ethereum.sol';
@@ -22,8 +21,10 @@ contract GovernanceV3Test is ProtocolV3TestBase {
 
   PayloadWithEmit payload;
 
+  uint256 public constant BLOCK_NUMBER = 20381808;
+
   function setUp() public {
-    vm.createSelectFork('mainnet', 18993187);
+    vm.createSelectFork('mainnet', BLOCK_NUMBER);
     payload = new PayloadWithEmit();
   }
 
@@ -91,7 +92,7 @@ contract GovernanceV3Test is ProtocolV3TestBase {
     GovV3StorageHelpers.readyPayloadId(vm, payloadsController, payloadId);
     IPayloadsControllerCore.Payload memory pl = payloadsController.getPayloadById(payloadId);
     assertEq(uint256(pl.state), uint256(IPayloadsControllerCore.PayloadState.Queued));
-    assertEq(pl.queuedAt, 1705004722);
+    assertEq(pl.queuedAt, block.timestamp - pl.delay -1);
     assertEq(uint256(pl.maximumAccessLevelRequired), 1);
     assertEq(pl.createdAt, block.timestamp);
     assertEq(pl.creator, address(this));
