@@ -3,21 +3,15 @@
 pragma solidity ^0.8.0;
 
 interface IAaveSwapper {
-  /// @dev Emitted when a swap is canceled
-  /// @param fromToken The token to swap from
-  /// @param toToken The token to swap to
-  /// @param amount Amount of fromToken to swap
+    event LimitSwapRequested(
+    address milkman,
+    address indexed fromToken,
+    address indexed toToken,
+    uint256 amount,
+    address indexed recipient,
+    uint256 minAmountOut
+  );
   event SwapCanceled(address indexed fromToken, address indexed toToken, uint256 amount);
-
-  /// @dev Emitted when a swap is submitted to Cow Swap
-  /// @param milkman Address of Milkman (Cow Swap) contract
-  /// @param fromToken Address of the token to swap from
-  /// @param toToken Address of the token to swap to
-  /// @param fromOracle Oracle to use for price validation for fromToken
-  /// @param toOracle Oracle to use for price validation for toToken
-  /// @param recipient Address receiving the swap
-  /// @param amount Amount of fromToken to swap
-  /// @param slippage The allowed slippage for the swap
   event SwapRequested(
     address milkman,
     address indexed fromToken,
@@ -29,16 +23,19 @@ interface IAaveSwapper {
     uint256 slippage
   );
 
-  /// @dev Provided address cannot be the zero-address
+  /// @notice Provided address is zero address
   error Invalid0xAddress();
 
-  /// @dev Amount has to be greater than zero
+  /// @notice Amount needs to be greater than zero
   error InvalidAmount();
 
-  /// @dev Recipient cannot be the zero-address
+  /// @notice Oracle does not have a valid decimals() function
+  error InvalidOracle();
+
+  /// @notice Recipient cannot be the zero address
   error InvalidRecipient();
 
-  /// @dev Oracle has not be set
+  /// @notice Oracle cannot be the zero address
   error OracleNotSet();
 
   /// @notice Returns the address of the 80-BAL-20-WETH Balancer LP
@@ -47,16 +44,16 @@ interface IAaveSwapper {
   /// @notice Initializes contract
   function initialize() external;
 
-  /// @notice Performs a swap via Cow Swap
-  /// @param milkman Address of Milkman (Cow Swap) contract
-  /// @param priceChecker Address of price checker to use for swap
+  /// @notice Function to swap one token for another within a specified slippage
+  /// @param milkman Address of the Milkman contract to submit the order
+  /// @param priceChecker Address of the price checker to validate order
   /// @param fromToken Address of the token to swap from
   /// @param toToken Address of the token to swap to
-  /// @param fromOracle Oracle to use for price validation for fromToken
-  /// @param toOracle Oracle to use for price validation for toToken
-  /// @param recipient Address receiving the swap
-  /// @param amount Amount of fromToken to swap
-  /// @param slippage The allowed slippage for the swap
+  /// @param fromOracle Address of the oracle to check fromToken price
+  /// @param toOracle Address of the oracle to check toToken price
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param slippage The allowed slippage compared to the oracle price (in BPS)
   function swap(
     address milkman,
     address priceChecker,
@@ -69,16 +66,35 @@ interface IAaveSwapper {
     uint256 slippage
   ) external;
 
-  /// @notice Canceels a pending swap via Cow Swap
-  /// @param tradeMilkman Address of Milkman instance that holds funds in escrow
-  /// @param priceChecker Address of price checker to use for swap
+  /// @notice Function to swap one token for another with a limit price
+  /// @param milkman Address of the Milkman contract to submit the order
+  /// @param priceChecker Address of the price checker to validate order
   /// @param fromToken Address of the token to swap from
   /// @param toToken Address of the token to swap to
-  /// @param fromOracle Oracle to use for price validation for fromToken
-  /// @param toOracle Oracle to use for price validation for toToken
-  /// @param recipient Address receiving the swap
-  /// @param amount Amount of fromToken to swap
-  /// @param slippage The allowed slippage for the swap
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param amountOut The limit price of the toToken (minimium amount to receive)
+  /// @dev For amountOut, use the token's atoms for decimals (ie: 6 for USDC, 18 for DAI)
+  function limitSwap(
+    address milkman,
+    address priceChecker,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 amount,
+    uint256 amountOut
+  ) external;
+
+  /// @notice Function to cancel an existing swap
+  /// @param tradeMilkman Address of the Milkman contract created upon order submission
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param fromOracle Address of the oracle to check fromToken price
+  /// @param toOracle Address of the oracle to check toToken price
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param slippage The allowed slippage compared to the oracle price (in BPS)
   function cancelSwap(
     address tradeMilkman,
     address priceChecker,
@@ -91,13 +107,31 @@ interface IAaveSwapper {
     uint256 slippage
   ) external;
 
-  /// @notice Returns the expected amount out in token to swap to
-  /// @param priceChecker Address of price checker to use for swap
-  /// @param amount Amount of fromToken to swap
+  /// @notice Function to cancel an existing limit swap
+  /// @param tradeMilkman Address of the Milkman contract created upon order submission
+  /// @param priceChecker Address of the price checker to validate order
   /// @param fromToken Address of the token to swap from
   /// @param toToken Address of the token to swap to
-  /// @param fromOracle Oracle to use for price validation for fromToken
-  /// @param toOracle Oracle to use for price validation for toToken
+  /// @param recipient Address of the account receiving the swapped funds
+  /// @param amount The amount of fromToken to swap
+  /// @param amountOut The limit price of the toToken (minimium amount to receive)
+  function cancelLimitSwap(
+    address tradeMilkman,
+    address priceChecker,
+    address fromToken,
+    address toToken,
+    address recipient,
+    uint256 amount,
+    uint256 amountOut
+  ) external;
+
+  /// @notice Helper function to see how much one could expect return in a swap
+  /// @param priceChecker Address of the price checker to validate order
+  /// @param amount The amount of fromToken to swap
+  /// @param fromToken Address of the token to swap from
+  /// @param toToken Address of the token to swap to
+  /// @param fromOracle Address of the oracle to check fromToken price
+  /// @param toOracle Address of the oracle to check toToken price
   function getExpectedOut(
     address priceChecker,
     uint256 amount,

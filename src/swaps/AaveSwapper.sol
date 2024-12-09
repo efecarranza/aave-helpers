@@ -15,7 +15,6 @@ import {IAaveSwapper} from './interfaces/IAaveSwapper.sol';
 import {IPriceChecker} from './interfaces/IExpectedOutCalculator.sol';
 import {IMilkman} from './interfaces/IMilkman.sol';
 import {IAggregatorV3Interface} from './interfaces/IAggregatorV3Interface.sol';
-import {IAaveSwapper} from './IAaveSwapper.sol';
 
 /**
  * @title AaveSwapper
@@ -140,6 +139,13 @@ contract AaveSwapper is IAaveSwapper, Initializable, OwnableWithGuardian, Rescua
   /// @inheritdoc Rescuable
   function whoCanRescue() public view override returns (address) {
     return owner();
+  }
+
+  /// @inheritdoc IRescuableBase
+  function maxRescue(
+    address erc20Token
+  ) public pure override(RescuableBase, IRescuableBase) returns (uint256) {
+    return type(uint256).max;
   }
 
   /// @notice Internal function that handles swaps
